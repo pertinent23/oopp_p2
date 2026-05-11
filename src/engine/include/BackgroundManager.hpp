@@ -65,10 +65,16 @@ class BackgroundManager
             float brightness
         ) const 
         {
-            int c = static_cast<int>(40 * brightness); // Effet de traînée très sombre
+            // Calcul de la couleur
+            // Les lignes de fond sont très sombres (c=40 max) pour rester 
+            // discrètes et ne pas gêner la visibilité des obstacles.
+            int c = static_cast<int>(40 * brightness); 
 
             for (const auto& line : lines) 
             {
+                // Dessin de chaque ligne
+                // On dessine des rectangles horizontaux fins qui défilent 
+                // pour donner une impression de vitesse au sol (effet parallaxe).
                 window.fillRect(
                     static_cast<int>(line.pos.x), 
                     static_cast<int>(line.pos.y), 

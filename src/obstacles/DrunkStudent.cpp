@@ -20,10 +20,13 @@ void DrunkStudent::draw(
     int offsetY
 ) const 
 {
+    // Calcul de la couleur violette (p) et de la traînée (tp) en fonction de la santé
     int p  = static_cast<int>(180 * brightness);
     int tp = static_cast<int>(40 * brightness); 
     
-    // Corps : Carré violet
+    // Dessin du corps principal de l'étudiant
+    // On utilise un carré violet pour le différencier des autres obstacles.
+    // L'offsetX/Y permet d'appliquer l'effet de tremblement (shake) lors des collisions.
     window.fillRect(
         static_cast<int>(position.x) + offsetX, 
         static_cast<int>(position.y) + offsetY, 
@@ -32,12 +35,14 @@ void DrunkStudent::draw(
         gfx::Color(p, p / 2, p)
     );
 
-    // Trails : 3 lignes horizontales
+    // Dessin de l'effet de vitesse (Trails)
+    // On dessine 3 lignes horizontales derrière l'objet pour simuler le mouvement rapide.
     int trailX = static_cast<int>(position.x + size.x + 5) + offsetX;
     int trailY = static_cast<int>(position.y) + offsetY;
     
     for (int i = 0; i < 3; ++i) 
     {
+        // On espace les lignes verticalement pour couvrir toute la hauteur du carré
         window.fillRect(
             trailX, 
             trailY + 2 + (i * (size.y / 3)), 

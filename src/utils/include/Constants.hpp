@@ -15,8 +15,8 @@ namespace Constants {
 
     // Difficulté progressive
     constexpr float BASE_OBSTACLE_SPEED = 600.0f; 
-    constexpr float MAX_OBSTACLE_SPEED = 1800.0f; 
-    constexpr float BASE_SPAWN_INTERVAL_MAX = 2.0f; 
+    constexpr float MAX_OBSTACLE_SPEED = 1400.0f; 
+    constexpr float BASE_SPAWN_INTERVAL_MAX = 1.0f; 
     
     // Probabilités (Total = 100)
     constexpr int PROB_KEBAB = 15;

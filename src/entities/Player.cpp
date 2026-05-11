@@ -105,13 +105,19 @@ void Player::draw(
     int offsetY
 ) const
 {
+    // Vérification de l'état
+    // Si Thomas est mort, on ne dessine rien.
     if (isDead()) 
     {
         return;
     }
 
+    // Gestion du clignotement d'invincibilité
+    // Si Thomas vient de prendre un choc, il clignote pour indiquer 
+    // au joueur qu'il est temporairement protégé des nouveaux dégâts.
     if (isInvincible())
     {
+        // On alterne le dessin une frame sur deux via le timer
         int blinkState = static_cast<int>(invincibilityTimer * 15) % 2; 
         if (blinkState == 0) 
         {
@@ -119,6 +125,9 @@ void Player::draw(
         }
     }
 
+    // Dessin du corps (Carré blanc)
+    // Thomas est représenté par un carré blanc pur qui s'assombrit
+    // en même temps que le reste du jeu si sa santé diminue.
     int c = static_cast<int>(255 * brightness);
     
     window.fillRect(

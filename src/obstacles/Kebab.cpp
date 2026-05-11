@@ -18,11 +18,14 @@ void Kebab::draw(
     int offsetY
 ) const 
 {
+    // Couleurs orangées pour le Kebab
     int r  = static_cast<int>(255 * brightness);
     int g  = static_cast<int>(165 * brightness);
     int to = static_cast<int>(80 * brightness); 
 
-    // Corps : Cercle orange
+    // Dessin du corps (Cercle orange)
+    // Contrairement aux obstacles néfastes, le Kebab est rond et orange 
+    // pour indiquer visuellement qu'il est un bonus (soin).
     window.fillCircle(
         static_cast<int>(position.x + size.x / 2) + offsetX,
         static_cast<int>(position.y + size.y / 2) + offsetY, 
@@ -30,7 +33,8 @@ void Kebab::draw(
         gfx::Color(r, g, 0)
     );
 
-    // Trails
+    // Dessin de la traînée de mouvement
+    // On dessine 3 petites lignes orange foncé pour renforcer l'effet de défilement.
     int trailX = static_cast<int>(position.x + size.x + 5) + offsetX;
     int trailY = static_cast<int>(position.y) + offsetY;
     

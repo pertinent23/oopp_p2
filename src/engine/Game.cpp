@@ -59,6 +59,10 @@ void Game::init()
     
     obstacles.clear();
     
+    std::cout << "--- Carre Surfer : Initialisation ---" << std::endl;
+    std::cout << "Resolution : " << Constants::WINDOW_WIDTH << "x" << Constants::WINDOW_HEIGHT << std::endl;
+    std::cout << "Record actuel : " << scoreManager->getHighScore() << std::endl;
+    
     currentState      = GameState::PLAYING;
     previousState     = GameState::PLAYING;
     gameOverSelection = 0;
@@ -222,7 +226,15 @@ void Game::update(float deltaTime)
         gameOverSelection = 0;
         
         int finalScore = static_cast<int>(timeSurvived * 10);
-        scoreManager->submitScore(finalScore);
+        bool isNewRecord = scoreManager->submitScore(finalScore);
+
+        std::cout << "--- GAME OVER ---" << std::endl;
+        std::cout << "Score final : " << finalScore << std::endl;
+        if (isNewRecord)
+        {
+            std::cout << "NOUVEAU RECORD ! Felicitations." << std::endl;
+        }
+        std::cout << "-----------------" << std::endl;
     }
     else
     {
@@ -266,29 +278,37 @@ void Game::render()
 {
     float healthRatio = player->getHealth() / static_cast<float>(Constants::PLAYER_MAX_HEALTH);
     
-    // Fond noir qui s'assombrit encore plus si la santé est basse
+    // Nettoyage de l'écran
+    // On utilise un fond noir qui s'assombrit dynamiquement selon la santé.
+    // Cela renforce l'immersion : quand Thomas est mal en point, le monde devient plus sombre.
     int bgVal = static_cast<int>(15 * healthRatio);
     window->clear(gfx::Color(bgVal, bgVal, bgVal)); 
 
     int offsetX = 0;
     int offsetY = 0;
 
-    // Calcul du décalage aléatoire pour l'effet de secousse
+    // Calcul du tremblement d'écran (Screen Shake)
+    // Si le joueur vient de subir un dégât, on génère un décalage aléatoire 
+    // qui sera appliqué à tous les objets dessinés ensuite.
     if (shakeTimer > 0.0f)
     {
         offsetX = Random::getInt(-10, 10);
         offsetY = Random::getInt(-10, 10);
     }
 
+    // Dessin du décor (Trottoir/Lignes)
     backgroundManager->draw(*window, healthRatio);
 
+    // Dessin des obstacles
     for (const auto& obstacle : obstacles)
     {
         obstacle->draw(*window, healthRatio, offsetX, offsetY); 
     }
 
+    // Dessin du joueur
     player->draw(*window, healthRatio, offsetX, offsetY);
 
+    // Dessin de l'Interface Utilisateur (HUD)
     drawUI();
 }
 
@@ -311,10 +331,13 @@ void Game::drawHeart(
     int R = size / 4;
     int fillY = y + size - static_cast<int>(size * fillRatio);
 
+    // Parcours horizontal de la zone du cœur
     for (int px = 0; px <= size; ++px)
     {
         int yTop, yBottom;
 
+        // Équation des lobes
+        // On divise le cœur en deux parties (gauche/droite) pour former les arrondis.
         if (px <= 2 * R) // Premier lobe (Lobe gauche)
         {
             int dx  = px - R;
@@ -333,16 +356,18 @@ void Game::drawHeart(
         int absTop    = y + yTop;
         int absBottom = y + yBottom;
         
-        // Remplissage dynamique "liquide" du cœur
-        if (absBottom < fillY) // Zone vide
+        // Remplissage vertical progressif
+        // On dessine une ligne verticale pour chaque colonne.
+        // On compare la hauteur actuelle de la colonne avec le "niveau de liquide" (fillY).
+        if (absBottom < fillY) // Zone supérieure (vide -> grise)
         {
             window->drawLine(x + px, absTop, x + px, absBottom, grey);
         }
-        else if (absTop >= fillY) // Zone pleine
+        else if (absTop >= fillY) // Zone inférieure (pleine -> rouge)
         {
             window->drawLine(x + px, absTop, x + px, absBottom, red);
         }
-        else // Zone mixte (transition)
+        else // Zone de transition (entre le gris et le rouge)
         {
             window->drawLine(x + px, absTop, x + px, fillY, grey);
             window->drawLine(x + px, fillY, x + px, absBottom, red);
@@ -356,7 +381,8 @@ void Game::drawHeart(
  */
 void Game::drawUI()
 {
-    // --- Barre de Vie (Cœurs dynamiques) ---
+    // Barre de Vie (Cœurs dynamiques)
+    // On divise la santé totale en 5 sections (cœurs).
     int maxHearts    = 5;
     float hpPerHeart = Constants::PLAYER_MAX_HEALTH / static_cast<float>(maxHearts);
     
@@ -365,23 +391,26 @@ void Game::drawUI()
         float heartHP   = player->getHealth() - (i * hpPerHeart);
         float fillRatio = 0.0f;
 
-        if (heartHP >= hpPerHeart) fillRatio = 1.0f;
-        else if (heartHP > 0.0f)   fillRatio = heartHP / hpPerHeart;
+        if (heartHP >= hpPerHeart) fillRatio = 1.0f; // Cœur plein
+        else if (heartHP > 0.0f)   fillRatio = heartHP / hpPerHeart; // Cœur partiellement rempli
         
         drawHeart(20 + i * 40, 20, 28, fillRatio); 
     }
 
-    // --- Barre de Score ---
+    // Barre de Score (Progression)
+    // On dessine un rectangle gris de fond, puis un rectangle bleu par-dessus
+    // pour montrer la progression du joueur vers les 10000 points.
     int maxDist     = 500;
     int finalScore  = static_cast<int>(timeSurvived * 10);
     float distRatio = std::min(1.0f, finalScore / 10000.0f);
     int barX        = 230;
     
-    window->fillRect(barX, 25, maxDist, 15, gfx::Color(80, 80, 80)); 
-    window->fillRect(barX, 25, static_cast<int>(maxDist * distRatio), 15, gfx::Color(0, 150, 255)); 
-    window->drawRect(barX, 25, maxDist, 15, gfx::Color(255, 255, 255)); 
+    window->fillRect(barX, 25, maxDist, 15, gfx::Color(80, 80, 80)); // Fond gris
+    window->fillRect(barX, 25, static_cast<int>(maxDist * distRatio), 15, gfx::Color(0, 150, 255)); // Remplissage bleu
+    window->drawRect(barX, 25, maxDist, 15, gfx::Color(255, 255, 255)); // Contour blanc pour la lisibilité
 
-    // Marqueur doré du High Score sur la barre
+    // Marqueur du High Score
+    // On dessine une petite barre dorée sur la barre de score pour matérialiser le record.
     int highScore = scoreManager->getHighScore();
     if (highScore > 0)
     {
@@ -390,7 +419,9 @@ void Game::drawUI()
         window->fillRect(hsPos - 2, 15, 4, 35, gfx::Color(255, 215, 0)); 
     }
 
-    // --- Commandes Clignotantes ---
+    // Commandes de jeu (Clignotantes)
+    // On affiche les rappels de touches. Le clignotement attire l'attention
+    // sans être trop intrusif grâce à un cycle de 1 seconde.
     if (std::fmod(timeSurvived, 1.0f) < 0.9f)
     {
         TextRenderer::drawText(
@@ -411,8 +442,10 @@ void Game::drawUI()
 /** @brief Affiche l'écran de fin de partie. */
 void Game::displayGameOver()
 {
+    // Fond d'écran de défaite (Bleu très sombre)
     window->clear(gfx::Color(10, 10, 15));
     
+    // Message principal en grand et rouge
     TextRenderer::drawText(
         *window, "GAME OVER", 
         Constants::WINDOW_WIDTH / 2 - 144, 
@@ -420,6 +453,8 @@ void Game::displayGameOver()
         gfx::Color(255, 50, 50)
     );
     
+    // Options du menu
+    // La couleur dorée indique l'option actuellement sélectionnée par le joueur.
     gfx::Color colorRestart = (gameOverSelection == 0) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
     gfx::Color colorQuit    = (gameOverSelection == 1) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
 
@@ -440,12 +475,17 @@ void Game::displayGameOver()
 /** @brief Affiche l'écran de pause en superposition (Alpha blending). */
 void Game::displayPause()
 {
+    // Voile semi-transparent (Alpha blending)
+    // On dessine un grand rectangle bleu nuit transparent sur tout l'écran 
+    // pour assombrir le jeu sans le cacher complètement.
     window->fillOverlay(0, 0, Constants::WINDOW_WIDTH, Constants::WINDOW_HEIGHT, gfx::Color(10, 10, 20, 150));
     
-    // Dessin de l'icône de pause (Deux barres blanches)
-    window->fillRect(Constants::WINDOW_WIDTH / 2 - 40, Constants::WINDOW_HEIGHT / 3, 30, 100, gfx::Color(255, 255, 255));
-    window->fillRect(Constants::WINDOW_WIDTH / 2 + 10, Constants::WINDOW_HEIGHT / 3, 30, 100, gfx::Color(255, 255, 255));
+    // Dessin de l'icône de pause (Deux barres blanches verticales)
+    // Placées au centre pour un aspect visuel classique de lecteur média
+    window->fillRect(Constants::WINDOW_WIDTH / 2 - 40, Constants::WINDOW_HEIGHT / 3, 30, 100, gfx::Color(255, 50, 50));
+    window->fillRect(Constants::WINDOW_WIDTH / 2 + 10, Constants::WINDOW_HEIGHT / 3, 30, 100, gfx::Color(255, 50, 50));
 
+    // Options du menu de pause
     gfx::Color colorResume = (gameOverSelection == 0) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
     gfx::Color colorQuit   = (gameOverSelection == 1) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
 
@@ -466,8 +506,10 @@ void Game::displayPause()
 /** @brief Affiche l'écran de confirmation de sortie. */
 void Game::displayQuitConfirm()
 {
+    // Voile très sombre pour détacher le menu du jeu
     window->fillOverlay(0, 0, Constants::WINDOW_WIDTH, Constants::WINDOW_HEIGHT, gfx::Color(10, 10, 15, 200));
 
+    // Question de confirmation
     TextRenderer::drawText(
         *window, "ARE YOU SURE?", 
         Constants::WINDOW_WIDTH / 2 - 182, 
@@ -475,6 +517,7 @@ void Game::displayQuitConfirm()
         gfx::Color(255, 50, 50)
     );
 
+    // Boutons de choix (YES/NO)
     gfx::Color colorYes = (gameOverSelection == 0) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
     gfx::Color colorNo  = (gameOverSelection == 1) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
 

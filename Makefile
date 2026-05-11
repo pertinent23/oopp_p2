@@ -9,7 +9,7 @@ CXXFLAGS = -std=c++20 -Wall -Wextra -O2 $(INCLUDES) -pthread
 CFLAGS = -O2 -I. -I./build
 LDFLAGS = -pthread -lwayland-client -lxkbcommon
 
-TARGET = carre_surfer
+TARGET = game
 
 # Chemins Wayland (du Makefile officiel)
 XDG_XML = /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml

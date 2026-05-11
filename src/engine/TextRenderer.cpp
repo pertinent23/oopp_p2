@@ -77,15 +77,18 @@ void TextRenderer::drawText(
         }
 
         // Dessin des pixels de la lettre
+        // Chaque lettre est une grille de 3x5 pixels.
         for (int row = 0; row < 5; ++row) 
         {
-            int rowData = data[row];
+            int rowData = data[row]; // Récupération du bitmask pour cette ligne
             
             for (int col = 0; col < 3; ++col) 
             {
-                // Lecture du bit correspondant
+                // Vérification du bit
+                // On teste si le bit correspondant à la colonne est à 1.
                 if ((rowData >> (2 - col)) & 1) 
                 {
+                    // Rendu du pixel agrandi (scale)
                     win.fillRect(
                         cursorX + col * scale, 
                         y + row * scale, 

@@ -18,9 +18,12 @@ void Scooter::draw(
     int offsetY
 ) const 
 {
+    // Vert pour le scooter (évoquant les flottes de scooters électriques en ville)
     int g  = static_cast<int>(200 * brightness);
     int tg = static_cast<int>(50 * brightness); 
     
+    // Dessin du corps (Rectangle fin et vertical)
+    // Le scooter est étroit pour être difficile à éviter par son mouvement rapide.
     window.fillRect(
         static_cast<int>(position.x) + offsetX, 
         static_cast<int>(position.y) + offsetY, 
@@ -29,6 +32,8 @@ void Scooter::draw(
         gfx::Color(0, g, 0)
     );
 
+    // Dessin des traînées de vitesse
+    // On dessine de longues traînées vertes pour souligner la finesse de l'objet.
     int trailX = static_cast<int>(position.x + size.x + 5) + offsetX;
     int trailY = static_cast<int>(position.y) + offsetY;
     

@@ -18,10 +18,14 @@ void Chouffe::draw(
     int offsetY
 ) const 
 {
+    // Couleurs ambrées pour la bière et blanc pour la mousse
     int r = static_cast<int>(210 * brightness);
     int g = static_cast<int>(105 * brightness);
     int b = static_cast<int>(30 * brightness); 
 
+    // Dessin du liquide (Rectangle ambré)
+    // On dessine le bas du verre rempli de bière. 
+    // On décale le haut de 5 pixels pour laisser de la place à la mousse.
     window.fillRect(
         static_cast<int>(position.x) + offsetX, 
         static_cast<int>(position.y) + offsetY + 5, 
@@ -30,8 +34,9 @@ void Chouffe::draw(
         gfx::Color(r, g, b)
     );
     
+    // Dessin de la mousse (Petit rectangle blanc sur le dessus)
+    // Cela permet d'identifier immédiatement l'objet comme une boisson.
     int w = static_cast<int>(255 * brightness);
-    
     window.fillRect(
         static_cast<int>(position.x) + offsetX, 
         static_cast<int>(position.y) + offsetY, 
@@ -40,6 +45,8 @@ void Chouffe::draw(
         gfx::Color(w, w, w)
     );
 
+    // Dessin des traînées de vitesse
+    // Traînées courtes et ambrées pour un effet visuel cohérent.
     int trailX = static_cast<int>(position.x + size.x + 5) + offsetX;
     int trailY = static_cast<int>(position.y) + offsetY;
     
