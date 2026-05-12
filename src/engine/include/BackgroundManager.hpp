@@ -2,7 +2,7 @@
 
 #include <vector>
 #include "Vector2D.hpp"
-#include "Constants.hpp"
+#include "Settings.hpp"
 #include "Window.hpp"
 
 
@@ -25,11 +25,11 @@ class BackgroundManager
             for (int i = 0; i < 20; i++) 
             {
                 float y1 = static_cast<float>(
-                    100 + (i * 55) % (Constants::WINDOW_HEIGHT - 150)
+                    100 + (i * 55) % (Settings::WINDOW_HEIGHT - 150)
                 );
 
                 float y2 = static_cast<float>(
-                    130 + (i * 73) % (Constants::WINDOW_HEIGHT - 150)
+                    130 + (i * 73) % (Settings::WINDOW_HEIGHT - 150)
                 );
 
                 lines.push_back({
@@ -47,7 +47,7 @@ class BackgroundManager
             float currentSpeed
         ) 
         {
-            float speed = currentSpeed * 0.3f; // Défile lentement en arrière-plan
+            float speed = currentSpeed * Settings::PARALLAX_FACTOR; // Défile lentement en arrière-plan
 
             for (auto& line : lines) 
             {
@@ -55,7 +55,7 @@ class BackgroundManager
 
                 if (line.pos.x + line.width < 0) 
                 {
-                    line.pos.x += Constants::WINDOW_WIDTH + 200; 
+                    line.pos.x += Settings::WINDOW_WIDTH + 200; 
                 }
             }
         }

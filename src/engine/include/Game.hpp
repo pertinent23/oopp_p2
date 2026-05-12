@@ -35,6 +35,22 @@ class Game
         std::unique_ptr<BackgroundManager> backgroundManager; ///< Arrière-plan animé
         
         std::vector<std::unique_ptr<Obstacle>> obstacles;    ///< Liste des obstacles actifs
+
+        // --- Systèmes de Feedback Visuel ---
+        struct Particle 
+        {
+            float x, y, vx, vy, life;
+        };
+
+        struct FloatingText 
+        {
+            std::string text;
+            float x, y, life;
+        };
+
+        std::vector<Particle>     particles;    ///< Particules actives
+        std::vector<FloatingText> floatingTexts; ///< Textes flottants (+10 HP, etc.)
+        float flashTimer;                       ///< Temps restant pour le flash vert
     
         /**
          * @enum GameState
@@ -69,6 +85,12 @@ class Game
     
         /** @brief Met à jour le chronomètre de tremblement de l'écran. */
         void handleShake(float deltaTime);
+
+        /** @brief Met à jour les particules et textes flottants. */
+        void updateFeedbacks(float deltaTime);
+
+        /** @brief Déclenche les effets visuels spécifiques au Kebab. */
+        void triggerKebabFeedback();
         
         /** @brief Affiche l'écran de Game Over. */
         void displayGameOver();

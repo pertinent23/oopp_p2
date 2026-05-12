@@ -1,13 +1,14 @@
 #include "Chouffe.hpp"
 #include "Player.hpp"
 #include "Window.hpp"
+#include "Settings.hpp"
 
 
 Chouffe::Chouffe(
     float x, 
     float y, 
     float speedX
-) : Obstacle(x, y, 15.0f, 25.0f, speedX) 
+) : Obstacle(x, y, Settings::CHOUFFE_WIDTH, Settings::CHOUFFE_HEIGHT, speedX) 
 {}
 
 

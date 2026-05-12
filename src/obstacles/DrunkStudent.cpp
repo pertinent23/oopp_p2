@@ -2,6 +2,7 @@
 #include "Player.hpp"
 #include "Window.hpp"
 #include "Random.hpp"
+#include "Settings.hpp"
 
 
 DrunkStudent::DrunkStudent(
@@ -55,7 +56,10 @@ void DrunkStudent::draw(
 
 void DrunkStudent::onCollision(Player& player) 
 {
-    player.takeDamage(20);
-    player.triggerInvincibility(2.0f);
-    player.applyConfusion(Random::getFloat(1.0f, 5.0f));
+    player.takeDamage(Settings::STUDENT_DAMAGE);
+    player.triggerInvincibility(Settings::INVINCIBILITY_DURATION);
+    player.applyConfusion(Random::getFloat(
+        Settings::CONFUSION_DURATION_MIN, 
+        Settings::CONFUSION_DURATION_MAX
+    ));
 }

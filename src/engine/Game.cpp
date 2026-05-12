@@ -8,7 +8,7 @@
 #include "CollisionManager.hpp"
 #include "ScoreManager.hpp"
 #include "Obstacle.hpp"
-#include "Constants.hpp"
+#include "Settings.hpp"
 #include "Random.hpp"
 
 #include <iostream>
@@ -21,6 +21,7 @@
  * Initialise les gestionnaires de base et lance la première initialisation du jeu.
  */
 Game::Game():
+    flashTimer(0.0f),
     currentState(GameState::PLAYING),
     previousState(GameState::PLAYING),
     gameOverSelection(0),
@@ -44,13 +45,13 @@ void Game::init()
 {
     window = std::make_unique<gfx::Window>(
         "Carre Surfer",
-        Constants::WINDOW_WIDTH,
-        Constants::WINDOW_HEIGHT
+        Settings::WINDOW_WIDTH,
+        Settings::WINDOW_HEIGHT
     );
     
     // Adaptation dynamique : on récupère la vraie taille de l'écran (Wayland/X11)
-    Constants::WINDOW_WIDTH  = window->width();
-    Constants::WINDOW_HEIGHT = window->height();
+    Settings::WINDOW_WIDTH  = window->width();
+    Settings::WINDOW_HEIGHT = window->height();
 
     inputManager      = std::make_unique<InputManager>(*window);
     player            = std::make_unique<Player>(*inputManager);
@@ -60,7 +61,7 @@ void Game::init()
     obstacles.clear();
     
     std::cout << "--- Carre Surfer : Initialisation ---" << std::endl;
-    std::cout << "Resolution : " << Constants::WINDOW_WIDTH << "x" << Constants::WINDOW_HEIGHT << std::endl;
+    std::cout << "Resolution : " << Settings::WINDOW_WIDTH << "x" << Settings::WINDOW_HEIGHT << std::endl;
     std::cout << "Record actuel : " << scoreManager->getHighScore() << std::endl;
     
     currentState      = GameState::PLAYING;
@@ -68,6 +69,9 @@ void Game::init()
     gameOverSelection = 0;
     timeSurvived      = 0.0f;
     shakeTimer        = 0.0f;
+    flashTimer        = 0.0f;
+    particles.clear();
+    floatingTexts.clear();
 }
 
 
@@ -77,7 +81,7 @@ void Game::init()
  */
 void Game::run()
 {
-    const float deltaTime = 1.0f / Constants::TARGET_FPS;
+    const float deltaTime = 1.0f / Settings::TARGET_FPS;
 
     while (window->isOpen())
     {
@@ -180,7 +184,7 @@ void Game::run()
         }
 
         window->present();
-        window->waitForNextFrame(Constants::TARGET_FPS);
+        window->waitForNextFrame(Settings::TARGET_FPS);
     }
 }
 
@@ -205,7 +209,7 @@ void Game::update(float deltaTime)
     // Gestion des collisions et déclenchement du tremblement d'écran
     if (CollisionManager::handleCollisions(*player, obstacles))
     {
-        shakeTimer = 1.0f;
+        shakeTimer = Settings::SHAKE_DURATION;
     }
 
     // Effet spécial : La Chouffe nettoie tout l'écran
@@ -217,6 +221,13 @@ void Game::update(float deltaTime)
         }
     }
 
+    // Effet spécial : Feedback Kebab
+    if (player->popKebabEffectTriggered())
+    {
+        triggerKebabFeedback();
+    }
+
+    updateFeedbacks(deltaTime);
     cleanDeadObstacles();
 
     // Transition vers Game Over si Thomas meurt
@@ -225,7 +236,7 @@ void Game::update(float deltaTime)
         currentState      = GameState::GAME_OVER;
         gameOverSelection = 0;
         
-        int finalScore = static_cast<int>(timeSurvived * 10);
+        int finalScore = static_cast<int>(timeSurvived * Settings::SCORE_MULTIPLIER);
         bool isNewRecord = scoreManager->submitScore(finalScore);
 
         std::cout << "--- GAME OVER ---" << std::endl;
@@ -242,6 +253,11 @@ void Game::update(float deltaTime)
     }
     
     handleShake(deltaTime);
+
+    if (flashTimer > 0.0f)
+    {
+        flashTimer -= deltaTime;
+    }
 }
 
 
@@ -276,7 +292,7 @@ void Game::handleShake(float deltaTime)
  */
 void Game::render()
 {
-    float healthRatio = player->getHealth() / static_cast<float>(Constants::PLAYER_MAX_HEALTH);
+    float healthRatio = player->getHealth() / static_cast<float>(Settings::PLAYER_MAX_HEALTH);
     
     // Nettoyage de l'écran
     // On utilise un fond noir qui s'assombrit dynamiquement selon la santé.
@@ -292,8 +308,8 @@ void Game::render()
     // qui sera appliqué à tous les objets dessinés ensuite.
     if (shakeTimer > 0.0f)
     {
-        offsetX = Random::getInt(-10, 10);
-        offsetY = Random::getInt(-10, 10);
+        offsetX = Random::getInt(-Settings::SHAKE_INTENSITY, Settings::SHAKE_INTENSITY);
+        offsetY = Random::getInt(-Settings::SHAKE_INTENSITY, Settings::SHAKE_INTENSITY);
     }
 
     // Dessin du décor (Trottoir/Lignes)
@@ -307,6 +323,33 @@ void Game::render()
 
     // Dessin du joueur
     player->draw(*window, healthRatio, offsetX, offsetY);
+
+    // Dessin des Particules
+    for (const auto& p : particles)
+    {
+        window->fillRect(
+            static_cast<int>(p.x), static_cast<int>(p.y), 
+            3, 3, 
+            gfx::Color(255, 165, 0) // Orange Kebab
+        );
+    }
+
+    // Dessin des Textes Flottants
+    for (const auto& t : floatingTexts)
+    {
+        TextRenderer::drawText(
+            *window, t.text, 
+            static_cast<int>(t.x), static_cast<int>(t.y), 
+            3, gfx::Color(0, 255, 0) // Vert soin
+        );
+    }
+
+    // Dessin du Flash vert
+    if (flashTimer > 0.0f)
+    {
+        int alpha = static_cast<int>(100 * (flashTimer / Settings::KEBAB_FLASH_DURATION));
+        window->fillOverlay(0, 0, Settings::WINDOW_WIDTH, Settings::WINDOW_HEIGHT, gfx::Color(0, 255, 0, alpha));
+    }
 
     // Dessin de l'Interface Utilisateur (HUD)
     drawUI();
@@ -376,6 +419,57 @@ void Game::drawHeart(
 }
 
 
+void Game::updateFeedbacks(float deltaTime)
+{
+    // Particules
+    for (auto it = particles.begin(); it != particles.end(); )
+    {
+        it->x    += it->vx * deltaTime;
+        it->y    += it->vy * deltaTime;
+        it->life -= deltaTime;
+        
+        if (it->life <= 0) it = particles.erase(it);
+        else ++it;
+    }
+
+    // Textes Flottants
+    for (auto it = floatingTexts.begin(); it != floatingTexts.end(); )
+    {
+        it->y    -= Settings::FLOATING_TEXT_SPEED * deltaTime; 
+        it->life -= deltaTime;
+        
+        if (it->life <= 0) it = floatingTexts.erase(it);
+        else ++it;
+    }
+}
+
+
+void Game::triggerKebabFeedback()
+{
+    flashTimer = Settings::KEBAB_FLASH_DURATION;
+
+    // Texte flottant au-dessus du joueur
+    floatingTexts.push_back({
+        "+10 HP", 
+        player->getPosition().x, 
+        player->getPosition().y - 30.0f, 
+        Settings::FLOATING_TEXT_LIFE
+    });
+
+    // Génération de particules orange
+    for (int i = 0; i < Settings::PARTICLE_COUNT; ++i)
+    {
+        particles.push_back({
+            player->getPosition().x + 15.0f,
+            player->getPosition().y + 15.0f,
+            Random::getFloat(-150.0f, 150.0f),
+            Random::getFloat(-150.0f, 150.0f),
+            Settings::PARTICLE_LIFE
+        });
+    }
+}
+
+
 /**
  * @brief Dessine l'interface HUD (Heads-Up Display).
  */
@@ -384,7 +478,7 @@ void Game::drawUI()
     // Barre de Vie (Cœurs dynamiques)
     // On divise la santé totale en 5 sections (cœurs).
     int maxHearts    = 5;
-    float hpPerHeart = Constants::PLAYER_MAX_HEALTH / static_cast<float>(maxHearts);
+    float hpPerHeart = Settings::PLAYER_MAX_HEALTH / static_cast<float>(maxHearts);
     
     for (int i = 0; i < maxHearts; ++i)
     {
@@ -399,23 +493,23 @@ void Game::drawUI()
 
     // Barre de Score (Progression)
     // On dessine un rectangle gris de fond, puis un rectangle bleu par-dessus
-    // pour montrer la progression du joueur vers les 10000 points.
-    int maxDist     = 500;
-    int finalScore  = static_cast<int>(timeSurvived * 10);
-    float distRatio = std::min(1.0f, finalScore / 10000.0f);
+    // pour montrer la progression du joueur vers l'objectif.
+    int maxDistBar  = 500;
+    int finalScore  = static_cast<int>(timeSurvived * Settings::SCORE_MULTIPLIER);
+    float distRatio = std::min(1.0f, finalScore / static_cast<float>(Settings::MAX_SCORE_DISTANCE));
     int barX        = 230;
     
-    window->fillRect(barX, 25, maxDist, 15, gfx::Color(80, 80, 80)); // Fond gris
-    window->fillRect(barX, 25, static_cast<int>(maxDist * distRatio), 15, gfx::Color(0, 150, 255)); // Remplissage bleu
-    window->drawRect(barX, 25, maxDist, 15, gfx::Color(255, 255, 255)); // Contour blanc pour la lisibilité
+    window->fillRect(barX, 25, maxDistBar, 15, gfx::Color(80, 80, 80)); // Fond gris
+    window->fillRect(barX, 25, static_cast<int>(maxDistBar * distRatio), 15, gfx::Color(0, 150, 255)); // Remplissage bleu
+    window->drawRect(barX, 25, maxDistBar, 15, gfx::Color(255, 255, 255)); // Contour blanc pour la lisibilité
 
     // Marqueur du High Score
     // On dessine une petite barre dorée sur la barre de score pour matérialiser le record.
     int highScore = scoreManager->getHighScore();
     if (highScore > 0)
     {
-        float hsRatio = std::min(1.0f, highScore / 10000.0f);
-        int hsPos     = barX + static_cast<int>(maxDist * hsRatio);
+        float hsRatio = std::min(1.0f, highScore / static_cast<float>(Settings::MAX_SCORE_DISTANCE));
+        int hsPos     = barX + static_cast<int>(maxDistBar * hsRatio);
         window->fillRect(hsPos - 2, 15, 4, 35, gfx::Color(255, 215, 0)); 
     }
 
@@ -426,13 +520,13 @@ void Game::drawUI()
     {
         TextRenderer::drawText(
             *window, "[SPACE] PAUSE", 
-            Constants::WINDOW_WIDTH - 340, 25, 3, 
+            Settings::WINDOW_WIDTH - 340, 25, 3, 
             gfx::Color(150, 150, 150)
         );
 
         TextRenderer::drawText(
             *window, "[ESC] QUIT", 
-            Constants::WINDOW_WIDTH - 140, 25, 3, 
+            Settings::WINDOW_WIDTH - 140, 25, 3, 
             gfx::Color(150, 150, 150)
         );
     }
@@ -448,8 +542,8 @@ void Game::displayGameOver()
     // Message principal en grand et rouge
     TextRenderer::drawText(
         *window, "GAME OVER", 
-        Constants::WINDOW_WIDTH / 2 - 144, 
-        Constants::WINDOW_HEIGHT / 3, 8, 
+        Settings::WINDOW_WIDTH / 2 - 144, 
+        Settings::WINDOW_HEIGHT / 3, 8, 
         gfx::Color(255, 50, 50)
     );
     
@@ -460,14 +554,14 @@ void Game::displayGameOver()
 
     TextRenderer::drawText(
         *window, "> [SPACE] RESTART <", 
-        Constants::WINDOW_WIDTH / 2 - 190, 
-        Constants::WINDOW_HEIGHT / 2 + 20, 5, colorRestart
+        Settings::WINDOW_WIDTH / 2 - 190, 
+        Settings::WINDOW_HEIGHT / 2 + 20, 5, colorRestart
     );
 
     TextRenderer::drawText(
         *window, "> [ESC] QUIT <", 
-        Constants::WINDOW_WIDTH / 2 - 140, 
-        Constants::WINDOW_HEIGHT / 2 + 90, 5, colorQuit
+        Settings::WINDOW_WIDTH / 2 - 140, 
+        Settings::WINDOW_HEIGHT / 2 + 90, 5, colorQuit
     );
 }
 
@@ -478,12 +572,12 @@ void Game::displayPause()
     // Voile semi-transparent (Alpha blending)
     // On dessine un grand rectangle bleu nuit transparent sur tout l'écran 
     // pour assombrir le jeu sans le cacher complètement.
-    window->fillOverlay(0, 0, Constants::WINDOW_WIDTH, Constants::WINDOW_HEIGHT, gfx::Color(10, 10, 20, 150));
+    window->fillOverlay(0, 0, Settings::WINDOW_WIDTH, Settings::WINDOW_HEIGHT, gfx::Color(10, 10, 20, 150));
     
     // Dessin de l'icône de pause (Deux barres blanches verticales)
     // Placées au centre pour un aspect visuel classique de lecteur média
-    window->fillRect(Constants::WINDOW_WIDTH / 2 - 40, Constants::WINDOW_HEIGHT / 3, 30, 100, gfx::Color(255, 50, 50));
-    window->fillRect(Constants::WINDOW_WIDTH / 2 + 10, Constants::WINDOW_HEIGHT / 3, 30, 100, gfx::Color(255, 50, 50));
+    window->fillRect(Settings::WINDOW_WIDTH / 2 - 40, Settings::WINDOW_HEIGHT / 3, 30, 100, gfx::Color(255, 50, 50));
+    window->fillRect(Settings::WINDOW_WIDTH / 2 + 10, Settings::WINDOW_HEIGHT / 3, 30, 100, gfx::Color(255, 50, 50));
 
     // Options du menu de pause
     gfx::Color colorResume = (gameOverSelection == 0) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
@@ -491,14 +585,14 @@ void Game::displayPause()
 
     TextRenderer::drawText(
         *window, "> [SPACE] RESUME <", 
-        Constants::WINDOW_WIDTH / 2 - 180, 
-        Constants::WINDOW_HEIGHT / 2 + 60, 5, colorResume
+        Settings::WINDOW_WIDTH / 2 - 180, 
+        Settings::WINDOW_HEIGHT / 2 + 60, 5, colorResume
     );
 
     TextRenderer::drawText(
         *window, "> [ESC] QUIT <", 
-        Constants::WINDOW_WIDTH / 2 - 140, 
-        Constants::WINDOW_HEIGHT / 2 + 130, 5, colorQuit
+        Settings::WINDOW_WIDTH / 2 - 140, 
+        Settings::WINDOW_HEIGHT / 2 + 130, 5, colorQuit
     );
 }
 
@@ -507,13 +601,13 @@ void Game::displayPause()
 void Game::displayQuitConfirm()
 {
     // Voile très sombre pour détacher le menu du jeu
-    window->fillOverlay(0, 0, Constants::WINDOW_WIDTH, Constants::WINDOW_HEIGHT, gfx::Color(10, 10, 15, 200));
+    window->fillOverlay(0, 0, Settings::WINDOW_WIDTH, Settings::WINDOW_HEIGHT, gfx::Color(10, 10, 15, 200));
 
     // Question de confirmation
     TextRenderer::drawText(
         *window, "ARE YOU SURE?", 
-        Constants::WINDOW_WIDTH / 2 - 182, 
-        Constants::WINDOW_HEIGHT / 3, 7, 
+        Settings::WINDOW_WIDTH / 2 - 182, 
+        Settings::WINDOW_HEIGHT / 3, 7, 
         gfx::Color(255, 50, 50)
     );
 
@@ -523,13 +617,13 @@ void Game::displayQuitConfirm()
 
     TextRenderer::drawText(
         *window, "> YES <", 
-        Constants::WINDOW_WIDTH / 2 - 70, 
-        Constants::WINDOW_HEIGHT / 2 + 20, 5, colorYes
+        Settings::WINDOW_WIDTH / 2 - 70, 
+        Settings::WINDOW_HEIGHT / 2 + 20, 5, colorYes
     );
 
     TextRenderer::drawText(
         *window, "> NO <", 
-        Constants::WINDOW_WIDTH / 2 - 60, 
-        Constants::WINDOW_HEIGHT / 2 + 90, 5, colorNo
+        Settings::WINDOW_WIDTH / 2 - 60, 
+        Settings::WINDOW_HEIGHT / 2 + 90, 5, colorNo
     );
 }

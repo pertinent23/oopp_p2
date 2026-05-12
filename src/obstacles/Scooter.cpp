@@ -1,13 +1,14 @@
 #include "Scooter.hpp"
 #include "Player.hpp"
 #include "Window.hpp"
+#include "Settings.hpp"
 
 
 Scooter::Scooter(
     float x, 
     float y, 
     float speedX
-) : Obstacle(x, y, 15.0f, 45.0f, speedX) 
+) : Obstacle(x, y, Settings::SCOOTER_WIDTH, Settings::SCOOTER_HEIGHT, speedX) 
 {}
 
 
@@ -51,6 +52,6 @@ void Scooter::draw(
 
 void Scooter::onCollision(Player& player) 
 {
-    player.takeDamage(30);
-    player.triggerInvincibility(2.0f);
+    player.takeDamage(Settings::SCOOTER_DAMAGE);
+    player.triggerInvincibility(Settings::INVINCIBILITY_DURATION);
 }

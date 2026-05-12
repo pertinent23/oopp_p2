@@ -1,22 +1,25 @@
 #include "Player.hpp"
 #include "Window.hpp"
 #include "Random.hpp"
+#include "Settings.hpp"
 
 #include <algorithm>
 
 
 Player::Player(InputManager& inputManager)
     : Entity(
-        Constants::PLAYER_START_X, 
-        Constants::WINDOW_HEIGHT / 2.0f, 
-        Constants::PLAYER_SIZE, 
-        Constants::PLAYER_SIZE
+        Settings::PLAYER_START_X, 
+        Settings::WINDOW_HEIGHT / 2.0f, 
+        Settings::PLAYER_SIZE, 
+        Settings::PLAYER_SIZE
     ),
     input(inputManager),
-    health(Constants::PLAYER_MAX_HEALTH),
-    staggerTimer(Constants::STAGGER_INTERVAL),
+    health(Settings::PLAYER_MAX_HEALTH),
+    staggerTimer(Settings::STAGGER_INTERVAL),
     invincibilityTimer(0.0f),
-    clearScreenRequested(false)
+    kebabEffectTimer(0.0f),
+    clearScreenRequested(false),
+    kebabEffectTriggered(false)
 {}
 
 
@@ -40,6 +43,18 @@ void Player::updateTimers(float deltaTime)
         invincibilityTimer -= deltaTime;
     }
 
+    if (kebabEffectTimer > 0.0f)
+    {
+        kebabEffectTimer -= deltaTime;
+        
+        // Si le boost vient de se terminer à cette frame
+        if (kebabEffectTimer <= 0.0f)
+        {
+            // On donne une invincibilité de sécurité (clignotement)
+            triggerInvincibility(Settings::KEBAB_SAFETY_DURATION); 
+        }
+    }
+
     staggerTimer -= deltaTime;
     
     if (staggerTimer <= 0.0f)
@@ -47,8 +62,8 @@ void Player::updateTimers(float deltaTime)
         applyStagger();
         
         staggerTimer = Random::getFloat(
-            Constants::STAGGER_INTERVAL * 0.5f, 
-            Constants::STAGGER_INTERVAL * 1.5f
+            Settings::STAGGER_INTERVAL * 0.5f, 
+            Settings::STAGGER_INTERVAL * 1.5f
         );
     }
 }
@@ -59,10 +74,13 @@ void Player::handleMovement(float deltaTime)
     velocity.x = 0.0f;
     velocity.y = 0.0f;
 
-    if (input.isUpPressed())    velocity.y -= Constants::PLAYER_SPEED;
-    if (input.isDownPressed())  velocity.y += Constants::PLAYER_SPEED;
-    if (input.isLeftPressed())  velocity.x -= Constants::PLAYER_SPEED;
-    if (input.isRightPressed()) velocity.x += Constants::PLAYER_SPEED;
+    float speed = Settings::PLAYER_SPEED;
+    if (kebabEffectTimer > 0.0f) speed *= Settings::KEBAB_SPEED_MULTIPLIER; 
+
+    if (input.isUpPressed())    velocity.y -= speed;
+    if (input.isDownPressed())  velocity.y += speed;
+    if (input.isLeftPressed())  velocity.x -= speed;
+    if (input.isRightPressed()) velocity.x += speed;
 
     position += velocity * deltaTime;
 }
@@ -88,12 +106,12 @@ void Player::constrainToWindow()
 {
     position.x = std::max(0.0f, std::min(
         position.x, 
-        static_cast<float>(Constants::WINDOW_WIDTH) - size.x
+        static_cast<float>(Settings::WINDOW_WIDTH) - size.x
     ));
 
     position.y = std::max(60.0f, std::min(
         position.y, 
-        static_cast<float>(Constants::WINDOW_HEIGHT) - size.y
+        static_cast<float>(Settings::WINDOW_HEIGHT) - size.y
     ));
 }
 
@@ -130,11 +148,27 @@ void Player::draw(
     // en même temps que le reste du jeu si sa santé diminue.
     int c = static_cast<int>(255 * brightness);
     
+    // Gestion de la taille (Pulse Kebab)
+    // Thomas grossit si l'effet Kebab est actif.
+    float drawW = size.x;
+    float drawH = size.y;
+    float drawX = position.x + offsetX;
+    float drawY = position.y + offsetY;
+
+    if (kebabEffectTimer > 0.0f)
+    {
+        drawW *= Settings::KEBAB_SIZE_MULTIPLIER;
+        drawH *= Settings::KEBAB_SIZE_MULTIPLIER;
+        // On centre l'agrandissement
+        drawX -= (drawW - size.x) / 2.0f;
+        drawY -= (drawH - size.y) / 2.0f;
+    }
+
     window.fillRect(
-        static_cast<int>(position.x) + offsetX, 
-        static_cast<int>(position.y) + offsetY, 
-        static_cast<int>(size.x), 
-        static_cast<int>(size.y), 
+        static_cast<int>(drawX), 
+        static_cast<int>(drawY), 
+        static_cast<int>(drawW), 
+        static_cast<int>(drawH), 
         gfx::Color(c, c, c)
     );
 }
@@ -153,13 +187,20 @@ void Player::takeDamage(int amount)
 
 void Player::heal(int amount)
 {
-    health = std::min(Constants::PLAYER_MAX_HEALTH, health + amount);
+    health = std::min(Settings::PLAYER_MAX_HEALTH, health + amount);
 }
 
 
 void Player::triggerInvincibility(float durationSeconds)
 {
     invincibilityTimer = durationSeconds;
+}
+
+
+void Player::triggerKebabBoost(float durationSeconds)
+{
+    kebabEffectTimer     = durationSeconds;
+    kebabEffectTriggered = true;
 }
 
 
@@ -183,12 +224,20 @@ bool Player::popClearScreen()
 }
 
 
+bool Player::popKebabEffectTriggered()
+{
+    bool temp = kebabEffectTriggered;
+    kebabEffectTriggered = false;
+    return temp;
+}
+
+
 int  Player::getHealth() const {
     return health;
 }
 
 bool Player::isInvincible() const {
-    return invincibilityTimer > 0.0f;
+    return invincibilityTimer > 0.0f || kebabEffectTimer > 0.0f;
 }
 
 bool Player::isDead() const {

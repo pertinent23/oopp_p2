@@ -4,14 +4,14 @@
 #include "Scooter.hpp"
 #include "DrunkStudent.hpp"
 #include "Chouffe.hpp"
-#include "Constants.hpp"
+#include "Settings.hpp"
 #include "Random.hpp"
 
 #include <algorithm>
 
 
 ObstacleSpawner::ObstacleSpawner() 
-    : spawnTimer(0.0f), currentSpeed(Constants::BASE_OBSTACLE_SPEED) 
+    : spawnTimer(0.0f), currentSpeed(Settings::BASE_OBSTACLE_SPEED) 
 {
 }
 
@@ -24,39 +24,42 @@ float ObstacleSpawner::getCurrentSpeed() const
 
 std::unique_ptr<Obstacle> ObstacleSpawner::createRandomObstacle() const 
 {
-    float startX = static_cast<float>(Constants::WINDOW_WIDTH);
+    float startX = static_cast<float>(Settings::WINDOW_WIDTH);
     
     float startY = Random::getFloat(
         100.0f, 
-        static_cast<float>(Constants::WINDOW_HEIGHT) - 50.0f
+        static_cast<float>(Settings::WINDOW_HEIGHT) - 50.0f
     );
 
     int randVal = Random::getInt(1, 100);
 
-    if (randVal <= Constants::PROB_KEBAB) 
+    if (randVal <= Settings::PROB_KEBAB) 
     {
         return std::make_unique<Kebab>(startX, startY, currentSpeed);
     }
-    randVal -= Constants::PROB_KEBAB;
+    randVal -= Settings::PROB_KEBAB;
 
-    if (randVal <= Constants::PROB_CHOUFFE) 
+    if (randVal <= Settings::PROB_CHOUFFE) 
     {
         return std::make_unique<Chouffe>(startX, startY, currentSpeed);
     }
-    randVal -= Constants::PROB_CHOUFFE;
+    randVal -= Settings::PROB_CHOUFFE;
 
-    if (randVal <= Constants::PROB_GARBAGE) 
+    if (randVal <= Settings::PROB_GARBAGE) 
     {
         return std::make_unique<Garbage>(startX, startY, currentSpeed);
     }
-    randVal -= Constants::PROB_GARBAGE;
+    randVal -= Settings::PROB_GARBAGE;
 
-    if (randVal <= Constants::PROB_SCOOTER) 
+    if (randVal <= Settings::PROB_SCOOTER) 
     {
         return std::make_unique<Scooter>(startX, startY, currentSpeed);
     }
     
-    float studentSize = Random::getFloat(20.0f, 40.0f);
+    float studentSize = Random::getFloat(
+        Settings::STUDENT_SIZE * 0.5f, 
+        Settings::STUDENT_SIZE
+    );
     
     return std::make_unique<DrunkStudent>(
         startX, 
@@ -72,10 +75,10 @@ void ObstacleSpawner::update(
     std::vector<std::unique_ptr<Obstacle>>& obstacles
 ) 
 {
-    // Augmentation progressive de la difficulté (+15 pixels/s chaque seconde)
-    if (currentSpeed < Constants::MAX_OBSTACLE_SPEED) 
+    // Augmentation progressive de la difficulté
+    if (currentSpeed < Settings::MAX_OBSTACLE_SPEED) 
     {
-        currentSpeed += 15.0f * deltaTime;
+        currentSpeed += Settings::DIFFICULTY_GROWTH * deltaTime;
     }
 
     spawnTimer -= deltaTime;
@@ -85,12 +88,12 @@ void ObstacleSpawner::update(
         obstacles.push_back(createRandomObstacle());
         
         // Plus on va vite, plus ça spawn rapidement !
-        float speedRatio = (currentSpeed - Constants::BASE_OBSTACLE_SPEED) / 
-                           (Constants::MAX_OBSTACLE_SPEED - Constants::BASE_OBSTACLE_SPEED);
+        float speedRatio = (currentSpeed - Settings::BASE_OBSTACLE_SPEED) / 
+                           (Settings::MAX_OBSTACLE_SPEED - Settings::BASE_OBSTACLE_SPEED);
         
         float maxInterval = std::max(
-            0.3f, 
-            Constants::BASE_SPAWN_INTERVAL_MAX - (speedRatio * 1.5f)
+            Settings::MIN_SPAWN_INTERVAL, 
+            Settings::BASE_SPAWN_INTERVAL_MAX - (speedRatio * 1.5f)
         );
         
         spawnTimer = Random::getFloat(maxInterval * 0.5f, maxInterval);

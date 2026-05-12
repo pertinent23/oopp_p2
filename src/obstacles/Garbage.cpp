@@ -1,13 +1,14 @@
 #include "Garbage.hpp"
 #include "Player.hpp"
 #include "Window.hpp"
+#include "Settings.hpp"
 
 
 Garbage::Garbage(
     float x, 
     float y, 
     float speedX
-) : Obstacle(x, y, 30.0f, 45.0f, speedX) 
+) : Obstacle(x, y, Settings::GARBAGE_WIDTH, Settings::GARBAGE_HEIGHT, speedX) 
 {}
 
 
@@ -52,6 +53,6 @@ void Garbage::draw(
 
 void Garbage::onCollision(Player& player) 
 {
-    player.takeDamage(10);
-    player.triggerInvincibility(2.0f);
+    player.takeDamage(Settings::GARBAGE_DAMAGE);
+    player.triggerInvincibility(Settings::INVINCIBILITY_DURATION);
 }

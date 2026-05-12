@@ -1,129 +1,122 @@
-# Tiny Wayland Drawing Wrapper
+# 🏄 Carré Surfer - Projet de Programmation C++
 
-`gfx::Window` is a tiny C++ graphics wrapper for your project.
+Bienvenue dans **Carré Surfer**, un jeu d'arcade rapide et nerveux développé en C++. Vous incarnez Thomas, un étudiant qui doit survivre le plus longtemps possible dans les rues pavées de Louvain-la-Neuve, en évitant les obstacles et en ramassant des bonus.
 
-It opens a window on Linux, lets you draw pixels, rectangles, lines, and 
-circles, and gives you polling-style keyboard and mouse input. Under the hood,
-it talks directly to the *Wayland compositor*.
+---
 
-That layer of complexity is conveniently hidden from you, you're welcome!
+## 🏗️ Architecture du Code
 
-## Files
+Le projet est structuré selon une architecture orientée objet rigoureuse, séparant la logique de jeu du moteur de rendu.
 
-| File         | What it is                                                           |
-|--------------|----------------------------------------------------------------------|
-| `Window.hpp` | **Read this.** The public API. One simple class, one namespace.      |
-| `Window.cpp` | Implementation. You don't need to thoroughly understand this.        |
-| `game.cpp`   | A tiny demo: a white square you move with WASD or arrow keys.        |
-| `Makefile`   | Build rules (see below for what each rule does).                     |
+### 📊 Diagramme de Classes
 
-## Dependencies
+```mermaid
+classDiagram
+    class Game {
+        +run()
+        +update()
+        +render()
+        -player: Player
+        -obstacles: vector~Obstacle~
+        -spawner: ObstacleSpawner
+    }
 
-You need a Wayland session on Linux (**Ubuntu 24.04 or later recommended**) and
-the following packages:
+    class Entity {
+        <<Abstract>>
+        #position: Vector2D
+        #size: Vector2D
+        +draw()*
+        +update()*
+    }
 
-```bash
-sudo apt install build-essential libwayland-dev libxkbcommon-dev wayland-protocols
+    class Player {
+        +handleMovement()
+        +takeDamage()
+        +triggerKebabBoost()
+    }
+
+    class Obstacle {
+        <<Abstract>>
+        +onCollision(Player)*
+    }
+
+    class Kebab { +onCollision() }
+    class Garbage { +onCollision() }
+    class DrunkStudent { +onCollision() }
+    class Chouffe { +onCollision() }
+
+    class Settings {
+        <<Namespace>>
+        +WINDOW_WIDTH
+        +PLAYER_SPEED
+        +...
+    }
+
+    Game *-- Player
+    Game *-- ObstacleSpawner
+    Game o-- Obstacle
+    Entity <|-- Player
+    Entity <|-- Obstacle
+    Obstacle <|-- Kebab
+    Obstacle <|-- Garbage
+    Obstacle <|-- DrunkStudent
+    Obstacle <|-- Chouffe
+    Game .. Settings
 ```
 
-What each package is for:
+---
 
-- **`build-essential`** : the `g++` compiler and `make`.
-- **`libwayland-dev`** : headers and client library for talking to a Wayland
-  compositor (the `wl_*` functions).
-- **`libxkbcommon-dev`** : keyboard handling: turns raw key codes into
-  actual characters like `A`, `Escape`, `Left arrow` using your layout.
-- **`wayland-protocols`** : protocol definitions in XML form (see below).
+## 🧩 Utilité des Classes
 
-## Build and run
+### 🎮 Cœur du Jeu
+*   **`Game`** : C'est le chef d'orchestre. Il contient la boucle principale (`run`), gère la machine à états (Jeu, Pause, Game Over) et délègue les tâches aux autres systèmes.
+*   **`Settings`** : Un espace de nom centralisant toute la configuration (vitesse, dégâts, probabilités). C'est le "tableau de bord" du jeu.
+
+### 👤 Entités et Obstacles
+*   **`Player`** : Gère l'état de Thomas (santé, position, effets). Il implémente les mécaniques spéciales comme le boost Kebab (agrandissement et invincibilité).
+*   **`Obstacle` (Base)** : Classe abstraite définissant le comportement commun de tout ce qui défile à l'écran.
+*   **`Kebab`** : Un bonus de soin qui déclenche un mode "Super Thomas" (Vitesse + Invincibilité).
+*   **`DrunkStudent`** : Un obstacle violet qui inflige des dégâts et inverse les contrôles du joueur (Confusion).
+*   **`Chouffe`** : Une bière spéciale qui nettoie instantanément tout l'écran en cas de collision.
+
+### ⚙️ Systèmes Techniques
+*   **`ObstacleSpawner`** : Gère la génération procédurale. Il augmente progressivement la vitesse et la densité des obstacles au fil du temps.
+*   **`CollisionManager`** : Utilise l'algorithme AABB (Axis-Aligned Bounding Box) pour détecter les chocs entre Thomas et les obstacles.
+*   **`ScoreManager`** : Calcule le score en fonction du temps et gère la sauvegarde du record dans `highscore.txt`.
+*   **`BackgroundManager`** : Gère l'effet de parallaxe (défilement du décor à différentes vitesses) pour donner une impression de profondeur.
+*   **`TextRenderer`** : Un moteur de rendu de texte pixel-art "custom" qui dessine chaque lettre pixel par pixel.
+
+---
+
+## 🚀 Comment Jouer ?
+
+### Commandes
+*   **Flèches Directionnelles** : Déplacer Thomas.
+*   **[ESPACE]** : Mettre en pause / Recommencer.
+*   **[ECHAP]** : Quitter le jeu.
+
+### Compilation
+Le projet utilise un `Makefile` pour simplifier la compilation sur Linux.
 
 ```bash
+# Pour compiler le jeu
 make
+
+# Pour lancer le jeu
 ./game
+
+# Pour nettoyer les fichiers temporaires
+make clean
 ```
 
-Close the window with Escape, or by clicking the close button.
+### Dépendances
+*   Un compilateur C++ compatible C++17 (ex: `g++`).
+*   Les bibliothèques systèmes Linux classiques (`libwayland-client`).
 
-## How the build works
+---
 
-If you have a look at the `Makefile` you'll see more than just a single 
-`g++` call. That's because Wayland is a **protocol**, not a library, and the
-build has to generate some code before compilation.
-
-You're probably not used to this, but the good news is that **you don't really
-need to understand the details to use the wrapper**. Just add your C++ files,
-run `make`, and it will do its thing.
-
-### A few words about Wayland
-Wayland is a protocol for talking to the display server of your OS (the "compositor").
-It defines how to create windows, draw pixels, and receive input events. It is
-the modern replacement for the older X11 system, and is used by default on most
-Linux distributions now.
-
-Basically, you can think of Wayland as a client-server system: your program is the
-"client" that talks to the "server" (the compositor) using a well-defined protocol.
-The `libwayland-client` library provides the low-level functions to send and receive
-messages, but it doesn't know anything about windows, titles, or buttons. Those are
-defined by an extension protocol called `xdg-shell`, which is what this wrapper uses.
-
-### About the XML step
-
-Wayland itself is tiny - the core `libwayland-client` library knows only
-how to send and receive abstract messages. It does **not** know what a
-"window" is, what a "title bar" is, or how to handle close buttons. Those
-are defined by an **extension protocol** called `xdg-shell`.
-
-The `wayland-protocols` package ships `xdg-shell` (and many other
-protocols) as **XML files**, located at:
-```
-/usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml
-```
-
-The XML describes every message, every argument, every event. To actually
-use the protocol from C or C++, you need matching C code. That C code is
-generated by a tool called `wayland-scanner`, which comes with
-`libwayland-dev`. The Makefile calls it twice:
-
-```makefile
-$(XDG_HDR): $(XDG_XML)
-	$(SCANNER) client-header $< $@    # produces .h: declarations
-
-$(XDG_SRC): $(XDG_XML)
-	$(SCANNER) private-code $< $@     # produces .c: definitions ("dispatch tables")
-```
-
-The resulting `xdg-shell-client-protocol.h` is `#include`'d by `Window.cpp`.
-The resulting `xdg-shell-protocol.c` is compiled with `gcc` (*it's C, not
-C++*) and linked into the final binary alongside our C++ objects. That's
-why the Makefile has a separate `$(XDG_OBJ)` rule using `$(CC)` rather
-than `$(CXX)`.
-
-Once you understand that the XML is just a language-agnostic description of
-a protocol, and `wayland-scanner` is a code generator that produces C bindings
-from it, **the rest of the Makefile is ordinary**: compile the `.cpp` files, link
-them together with the generated protocol object and the two system libraries
-(`-lwayland-client -lxkbcommon`).
-
-## Troubleshooting
-
-Here are a few common issues you might run into, and how to fix them:
-
-**"Failed to connect to Wayland display"**: you're running under X11
-(e.g. inside an Xorg session, or over `ssh -X`). Check with:
-```bash
-echo $XDG_SESSION_TYPE
-```
-If this prints `x11`, log out and pick a Wayland session at the login
-screen (on GNOME this is usually the default and you should not have
-this issue; on KDE you may need to select "Plasma (Wayland)").
-
-**"listener function for opcode N of ... is NULL"** - means the wrapper
-doesn't know about an event your OS compositor is sending. This wrapper binds
-everything *at protocol version 1* and provides no-op stubs for every
-optional listener slot, so you should not hit this. 
-If you do, your system's `wayland-protocols` may be newer than what this code
-was tested against; check the listener structs near the top of `Window.cpp`.
-
-**Nothing shows on screen** - make sure you call `win.present()` after
-drawing each frame. `drawRect`/`fillCircle`/etc. only modify an in-memory
-back buffer; nothing reaches the compositor until `present()` is called.
+## 🎨 Design et Esthétique
+Le jeu utilise un style minimaliste "Carré" avec des effets modernes :
+*   **Screen Shake** : L'écran tremble lors des chocs.
+*   **Transitions** : Les menus utilisent de l'Alpha Blending (transparence) pour assombrir le jeu en arrière-plan.
+*   **Feedback Visuel** : Particules et textes flottants lors de la prise de bonus.

@@ -2,7 +2,7 @@
 
 #include "Entity.hpp"
 #include "InputManager.hpp"
-#include "Constants.hpp"
+#include "Settings.hpp"
 
 
 /**
@@ -19,7 +19,9 @@ class Player : public Entity
         int   health;                ///< Points de vie actuels
         float staggerTimer;          ///< Chronomètre pour l'effet de décalage aléatoire
         float invincibilityTimer;    ///< Temps d'invincibilité restant après un choc
+        float kebabEffectTimer;      ///< Temps restant pour le boost Kebab (Vitesse + Taille + Invincibilité)
         bool  clearScreenRequested;  ///< Drapeau pour le power-up Chouffe
+        bool  kebabEffectTriggered;  ///< Drapeau pour prévenir Game de déclencher les particules/flash
 
         /** @brief Gère les déplacements clavier. */
         void handleMovement(float deltaTime);
@@ -60,6 +62,9 @@ class Player : public Entity
         /** @brief Active l'invincibilité temporaire. */
         void triggerInvincibility(float durationSeconds);
 
+        /** @brief Active le boost Kebab (Vitesse + Taille + Invincibilité). */
+        void triggerKebabBoost(float durationSeconds);
+
         /** @brief Inverse les contrôles du joueur. */
         void applyConfusion(float durationSeconds);
 
@@ -71,6 +76,9 @@ class Player : public Entity
          * @return Vrai si le nettoyage a été demandé.
          */
         bool popClearScreen();
+
+        /** @brief Vérifie et consomme le drapeau de déclenchement d'effet Kebab. */
+        bool popKebabEffectTriggered();
 
         /** @return Points de vie actuels. */
         int getHealth() const;

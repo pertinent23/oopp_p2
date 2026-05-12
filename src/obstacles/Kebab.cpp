@@ -1,13 +1,14 @@
 #include "Kebab.hpp"
 #include "Player.hpp"
 #include "Window.hpp"
+#include "Settings.hpp"
 
 
 Kebab::Kebab(
     float x, 
     float y, 
     float speedX
-) : Obstacle(x, y, 20.0f, 20.0f, speedX) 
+) : Obstacle(x, y, Settings::KEBAB_SIZE, Settings::KEBAB_SIZE, speedX) 
 {}
 
 
@@ -52,6 +53,7 @@ void Kebab::draw(
 
 void Kebab::onCollision(Player& player) 
 {
-    player.heal(10);
+    player.heal(Settings::KEBAB_HEAL);
+    player.triggerKebabBoost(Settings::KEBAB_BOOST_DURATION); 
     deactivate();
 }
