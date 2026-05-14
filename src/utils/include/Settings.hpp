@@ -19,13 +19,13 @@ namespace Settings
     constexpr float STAGGER_INTERVAL       = 2.0f; 
     constexpr float INVINCIBILITY_DURATION = 2.0f; 
 
-    // --- Difficulté et Vitesse ---
-    constexpr float BASE_OBSTACLE_SPEED      = 600.0f; 
-    constexpr float MAX_OBSTACLE_SPEED       = 1400.0f; 
-    constexpr float BASE_SPAWN_INTERVAL_MAX  = 1.0f; 
-    constexpr float MIN_SPAWN_INTERVAL       = 0.3f; 
-    constexpr int   GROUP_SPAWN_PROB         = 20;    // % de chance de spawn double
-    constexpr float DIFFICULTY_GROWTH        = 15.0f; // Vitesse gagnée par seconde
+    // --- Difficulté et Vitesse (Modifiables via le Menu) ---
+    inline float BASE_OBSTACLE_SPEED      = 600.0f; 
+    inline float MAX_OBSTACLE_SPEED       = 1400.0f; 
+    inline float BASE_SPAWN_INTERVAL_MAX  = 1.0f; 
+    inline float MIN_SPAWN_INTERVAL       = 0.3f; 
+    inline int   GROUP_SPAWN_PROB         = 20;    // % de chance de spawn double
+    inline float DIFFICULTY_GROWTH        = 15.0f; // Vitesse gagnée par seconde
 
     // --- Obstacles : Dimensions ---
     constexpr float KEBAB_SIZE     = 20.0f;

@@ -22,6 +22,12 @@ const Vector2D& Entity::getSize() const
 }
 
 
+const Vector2D& Entity::getVelocity() const 
+{
+    return velocity;
+}
+
+
 Entity::Rect Entity::getHitbox() const 
 {
     return {position.x, position.y, size.x, size.y};

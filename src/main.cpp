@@ -4,11 +4,20 @@
 #include <exception>
 
 
-int main() 
+int main(int argc, char* argv[]) 
 {
+    bool demoMode = false;
+    for (int i = 1; i < argc; ++i)
+    {
+        if (std::string(argv[i]) == "-smart")
+        {
+            demoMode = true;
+        }
+    }
+
     try 
     {
-        Game game;
+        Game game(demoMode);
         game.run();
     } 
     catch (const std::exception& e) 

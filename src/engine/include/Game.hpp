@@ -58,6 +58,7 @@ class Game
          */
         enum class GameState
         {
+            MAIN_MENU,      ///< Menu principal (Choix de difficulté)
             PLAYING,        ///< Jeu actif
             PAUSED,         ///< Menu de pause
             GAME_OVER,      ///< Écran de défaite
@@ -67,12 +68,19 @@ class Game
         GameState currentState;     ///< État actuel
         GameState previousState;    ///< État mémorisé (pour retour après confirmation)
         
-        int   gameOverSelection;    ///< Index de sélection dans les menus (0 ou 1)
+        int   menuSelection;        ///< Index de sélection dans les menus
         float timeSurvived;         ///< Chronomètre de survie
         float shakeTimer;           ///< Temps restant pour l'effet de tremblement
+        bool  isDemoMode;           ///< Le jeu tourne-t-il en mode IA autonome ?
     
-        /** @brief Initialise ou réinitialise tous les systèmes. */
+        /** @brief Initialise les systèmes de base au lancement. */
         void init();
+
+        /** @brief Réinitialise l'état du jeu pour une nouvelle partie. */
+        void resetGame();
+        
+        /** @brief Applique les paramètres de difficulté choisis. */
+        void applyDifficulty(int level);
     
         /** @brief Met à jour la logique du jeu. */
         void update(float deltaTime);
@@ -92,6 +100,9 @@ class Game
         /** @brief Déclenche les effets visuels spécifiques au Kebab. */
         void triggerKebabFeedback();
         
+        /** @brief Affiche l'écran du Menu Principal. */
+        void displayMainMenu();
+
         /** @brief Affiche l'écran de Game Over. */
         void displayGameOver();
     
@@ -120,7 +131,7 @@ class Game
     
     public:
         /** @brief Constructeur : Prépare les systèmes de base. */
-        Game();
+        explicit Game(bool demoMode = false);
     
         /** @brief Destructeur par défaut. */
         ~Game();

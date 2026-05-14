@@ -3,6 +3,9 @@
 #include "Entity.hpp"
 #include "InputManager.hpp"
 #include "Settings.hpp"
+#include "Obstacle.hpp"
+#include <vector>
+#include <memory>
 
 
 /**
@@ -14,7 +17,7 @@
  */
 class Player : public Entity 
 {
-    private:
+    protected:
         InputManager& input;         ///< Référence vers le gestionnaire d'entrées
         int   health;                ///< Points de vie actuels
         float staggerTimer;          ///< Chronomètre pour l'effet de décalage aléatoire
@@ -23,8 +26,10 @@ class Player : public Entity
         bool  clearScreenRequested;  ///< Drapeau pour le power-up Chouffe
         bool  kebabEffectTriggered;  ///< Drapeau pour prévenir Game de déclencher les particules/flash
 
-        /** @brief Gère les déplacements clavier. */
-        void handleMovement(float deltaTime);
+        const std::vector<std::unique_ptr<Obstacle>>* currentObstacles = nullptr; ///< Réf pour l'IA
+
+        /** @brief Gère les déplacements. Rendu virtuel pour SmartPlayer. */
+        virtual void handleMovement(float deltaTime);
 
         /** @brief Applique un petit décalage aléatoire à la position (Simule la fatigue). */
         void applyStagger();
@@ -44,6 +49,11 @@ class Player : public Entity
 
         /** @brief Logique principale du joueur. */
         void update(float deltaTime) override;
+
+        /** @brief Permet de passer les obstacles à l'IA avant update. */
+        void setObstacles(const std::vector<std::unique_ptr<Obstacle>>& obs) {
+            currentObstacles = &obs;
+        }
 
         /** @brief Affiche Thomas sous forme de carré blanc (clignotant si invincible). */
         void draw(

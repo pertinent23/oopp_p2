@@ -10,6 +10,7 @@
 #include "Obstacle.hpp"
 #include "Settings.hpp"
 #include "Random.hpp"
+#include "SmartPlayer.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -20,13 +21,14 @@
  * @brief Constructeur de la classe Game.
  * Initialise les gestionnaires de base et lance la première initialisation du jeu.
  */
-Game::Game():
+Game::Game(bool demoMode):
     flashTimer(0.0f),
     currentState(GameState::PLAYING),
     previousState(GameState::PLAYING),
-    gameOverSelection(0),
+    menuSelection(0),
     timeSurvived(0.0f),
-    shakeTimer(0.0f)
+    shakeTimer(0.0f),
+    isDemoMode(demoMode)
 {
     Random::init();
     scoreManager = std::make_unique<ScoreManager>();
@@ -49,29 +51,79 @@ void Game::init()
         Settings::WINDOW_HEIGHT
     );
     
-    // Adaptation dynamique : on récupère la vraie taille de l'écran (Wayland/X11)
     Settings::WINDOW_WIDTH  = window->width();
     Settings::WINDOW_HEIGHT = window->height();
 
-    inputManager      = std::make_unique<InputManager>(*window);
-    player            = std::make_unique<Player>(*inputManager);
-    obstacleSpawner   = std::make_unique<ObstacleSpawner>();
+    inputManager = std::make_unique<InputManager>(*window);
     backgroundManager = std::make_unique<BackgroundManager>();
-    
-    obstacles.clear();
     
     std::cout << "--- Carre Surfer : Initialisation ---" << std::endl;
     std::cout << "Resolution : " << Settings::WINDOW_WIDTH << "x" << Settings::WINDOW_HEIGHT << std::endl;
     std::cout << "Record actuel : " << scoreManager->getHighScore() << std::endl;
     
-    currentState      = GameState::PLAYING;
-    previousState     = GameState::PLAYING;
-    gameOverSelection = 0;
+    currentState      = GameState::MAIN_MENU;
+    previousState     = GameState::MAIN_MENU;
+    menuSelection     = 0;
     timeSurvived      = 0.0f;
     shakeTimer        = 0.0f;
     flashTimer        = 0.0f;
     particles.clear();
     floatingTexts.clear();
+}
+
+void Game::resetGame()
+{
+    if (isDemoMode)
+    {
+        player = std::make_unique<SmartPlayer>(*inputManager);
+    }
+    else
+    {
+        player = std::make_unique<Player>(*inputManager);
+    }
+
+    obstacleSpawner   = std::make_unique<ObstacleSpawner>();
+    
+    obstacles.clear();
+    timeSurvived      = 0.0f;
+    shakeTimer        = 0.0f;
+    flashTimer        = 0.0f;
+    particles.clear();
+    floatingTexts.clear();
+
+    currentState      = GameState::PLAYING;
+    previousState     = GameState::PLAYING;
+}
+
+void Game::applyDifficulty(int level)
+{
+    if (level == 0) // EASY
+    {
+        Settings::BASE_OBSTACLE_SPEED = 600.0f;
+        Settings::MAX_OBSTACLE_SPEED = 1400.0f;
+        Settings::BASE_SPAWN_INTERVAL_MAX = 1.0f;
+        Settings::MIN_SPAWN_INTERVAL = 0.3f;
+        Settings::GROUP_SPAWN_PROB = 20;
+        Settings::DIFFICULTY_GROWTH = 15.0f;
+    }
+    else if (level == 1) // INTERMEDIATE
+    {
+        Settings::BASE_OBSTACLE_SPEED = 800.0f;
+        Settings::MAX_OBSTACLE_SPEED = 1800.0f;
+        Settings::BASE_SPAWN_INTERVAL_MAX = 0.8f;
+        Settings::MIN_SPAWN_INTERVAL = 0.2f;
+        Settings::GROUP_SPAWN_PROB = 35;
+        Settings::DIFFICULTY_GROWTH = 25.0f;
+    }
+    else if (level == 2) // EXPERT
+    {
+        Settings::BASE_OBSTACLE_SPEED = 1000.0f;
+        Settings::MAX_OBSTACLE_SPEED = 2500.0f;
+        Settings::BASE_SPAWN_INTERVAL_MAX = 0.6f;
+        Settings::MIN_SPAWN_INTERVAL = 0.1f;
+        Settings::GROUP_SPAWN_PROB = 50;
+        Settings::DIFFICULTY_GROWTH = 40.0f;
+    }
 }
 
 
@@ -90,11 +142,11 @@ void Game::run()
         // --- Navigation Globale (Touche Echap) ---
         if (inputManager->wasEscPressed())
         {
-            if (currentState == GameState::PLAYING || currentState == GameState::PAUSED)
+            if (currentState == GameState::PLAYING || currentState == GameState::PAUSED || currentState == GameState::MAIN_MENU)
             {
                 previousState     = currentState;
                 currentState      = GameState::QUIT_CONFIRM;
-                gameOverSelection = 1; // Sécurité : curseur sur "NON"
+                menuSelection = 1; // Sécurité : curseur sur "NON"
             }
             else if (currentState == GameState::QUIT_CONFIRM)
             {
@@ -104,7 +156,31 @@ void Game::run()
 
         // --- Machine à États ---
 
-        if (currentState == GameState::PLAYING)
+        if (currentState == GameState::MAIN_MENU)
+        {
+            if (inputManager->wasUpPressed())
+            {
+                menuSelection = std::max(0, menuSelection - 1);
+            }
+
+            if (inputManager->wasDownPressed())
+            {
+                menuSelection = std::min(2, menuSelection + 1);
+            }
+
+            if (inputManager->wasEnterPressed())
+            {
+                applyDifficulty(menuSelection);
+                resetGame();
+            }
+            else
+            {
+                // Animation du fond pour le menu principal
+                backgroundManager->update(deltaTime, 200.0f);
+                displayMainMenu();
+            }
+        }
+        else if (currentState == GameState::PLAYING)
         {
             if (inputManager->wasSpacePressed())
             {
@@ -119,18 +195,18 @@ void Game::run()
         else if (currentState == GameState::PAUSED)
         {
             // Navigation dans le menu Pause
-            if (inputManager->wasUpPressed())    gameOverSelection = 0;
-            if (inputManager->wasDownPressed())  gameOverSelection = 1;
+            if (inputManager->wasUpPressed())    menuSelection = 0;
+            if (inputManager->wasDownPressed())  menuSelection = 1;
 
             if (inputManager->wasEnterPressed())
             {
-                if (gameOverSelection == 0) 
+                if (menuSelection == 0) 
                     currentState = GameState::PLAYING;
                 else 
                 {
                     previousState = currentState;
                     currentState  = GameState::QUIT_CONFIRM;
-                    gameOverSelection = 1;
+                    menuSelection = 1;
                 }
             }
             else if (inputManager->wasSpacePressed())
@@ -144,12 +220,17 @@ void Game::run()
         else if (currentState == GameState::GAME_OVER)
         {
             // Navigation dans l'écran de défaite
-            if (inputManager->wasUpPressed())   gameOverSelection = 0;
-            if (inputManager->wasDownPressed()) gameOverSelection = 1;
+            if (inputManager->wasUpPressed())   menuSelection = std::max(0, menuSelection - 1);
+            if (inputManager->wasDownPressed()) menuSelection = std::min(2, menuSelection + 1);
 
             if (inputManager->wasEnterPressed())
             {
-                if (gameOverSelection == 0) init(); // Recommencer
+                if (menuSelection == 0) resetGame(); // Recommencer
+                else if (menuSelection == 1) 
+                {
+                    currentState = GameState::MAIN_MENU;
+                    menuSelection = 0;
+                }
                 else 
                 {
                     window->close();
@@ -158,7 +239,7 @@ void Game::run()
             }
             else if (inputManager->wasSpacePressed())
             {
-                init();
+                resetGame();
             }
 
             displayGameOver();
@@ -166,12 +247,12 @@ void Game::run()
         else if (currentState == GameState::QUIT_CONFIRM)
         {
             // Navigation dans l'écran de confirmation
-            if (inputManager->wasUpPressed())   gameOverSelection = 0;
-            if (inputManager->wasDownPressed()) gameOverSelection = 1;
+            if (inputManager->wasUpPressed())   menuSelection = 0;
+            if (inputManager->wasDownPressed()) menuSelection = 1;
 
             if (inputManager->wasEnterPressed())
             {
-                if (gameOverSelection == 0) 
+                if (menuSelection == 0) 
                 {
                     window->close(); // Quitter définitivement
                     break;
@@ -195,6 +276,9 @@ void Game::run()
 void Game::update(float deltaTime)
 {
     inputManager->update(deltaTime);
+    
+    // On passe les obstacles au joueur (utile pour l'IA en mode démo)
+    player->setObstacles(obstacles);
     player->update(deltaTime);
     
     float currentSpeed = obstacleSpawner->getCurrentSpeed();
@@ -234,14 +318,24 @@ void Game::update(float deltaTime)
     if (player->isDead())
     {
         currentState      = GameState::GAME_OVER;
-        gameOverSelection = 0;
+        menuSelection     = 0;
         
         int finalScore = static_cast<int>(timeSurvived * Settings::SCORE_MULTIPLIER);
-        bool isNewRecord = scoreManager->submitScore(finalScore);
+        
+        bool isNewRecord = false;
+        // On n'enregistre le score que si on n'est PAS en mode démo
+        if (!isDemoMode)
+        {
+            isNewRecord = scoreManager->submitScore(finalScore);
+        }
 
         std::cout << "--- GAME OVER ---" << std::endl;
         std::cout << "Score final : " << finalScore << std::endl;
-        if (isNewRecord)
+        if (isDemoMode)
+        {
+            std::cout << "[Mode Demo] Le score n'est pas sauvegarde." << std::endl;
+        }
+        else if (isNewRecord)
         {
             std::cout << "NOUVEAU RECORD ! Felicitations." << std::endl;
         }
@@ -292,11 +386,10 @@ void Game::handleShake(float deltaTime)
  */
 void Game::render()
 {
-    float healthRatio = player->getHealth() / static_cast<float>(Settings::PLAYER_MAX_HEALTH);
+    // Sécurité : Si le joueur n'est pas encore créé (ex: dans le Menu Principal), on utilise des valeurs par défaut.
+    float healthRatio = player ? (player->getHealth() / static_cast<float>(Settings::PLAYER_MAX_HEALTH)) : 1.0f;
     
     // Nettoyage de l'écran
-    // On utilise un fond noir qui s'assombrit dynamiquement selon la santé.
-    // Cela renforce l'immersion : quand Thomas est mal en point, le monde devient plus sombre.
     int bgVal = static_cast<int>(15 * healthRatio);
     window->clear(gfx::Color(bgVal, bgVal, bgVal)); 
 
@@ -321,8 +414,11 @@ void Game::render()
         obstacle->draw(*window, healthRatio, offsetX, offsetY); 
     }
 
-    // Dessin du joueur
-    player->draw(*window, healthRatio, offsetX, offsetY);
+    // Dessin du joueur (si initialisé)
+    if (player)
+    {
+        player->draw(*window, healthRatio, offsetX, offsetY);
+    }
 
     // Dessin des Particules
     for (const auto& p : particles)
@@ -344,15 +440,18 @@ void Game::render()
         );
     }
 
-    // Dessin du Flash vert
-    if (flashTimer > 0.0f)
+    if (player)
     {
-        int alpha = static_cast<int>(100 * (flashTimer / Settings::KEBAB_FLASH_DURATION));
-        window->fillOverlay(0, 0, Settings::WINDOW_WIDTH, Settings::WINDOW_HEIGHT, gfx::Color(0, 255, 0, alpha));
-    }
+        // Dessin du Flash vert
+        if (flashTimer > 0.0f)
+        {
+            int alpha = static_cast<int>(100 * (flashTimer / Settings::KEBAB_FLASH_DURATION));
+            window->fillOverlay(0, 0, Settings::WINDOW_WIDTH, Settings::WINDOW_HEIGHT, gfx::Color(0, 255, 0, alpha));
+        }
 
-    // Dessin de l'Interface Utilisateur (HUD)
-    drawUI();
+        // Dessin de l'Interface Utilisateur (HUD)
+        drawUI();
+    }
 }
 
 
@@ -475,6 +574,8 @@ void Game::triggerKebabFeedback()
  */
 void Game::drawUI()
 {
+    if (!player) return;
+
     // Barre de Vie (Cœurs dynamiques)
     // On divise la santé totale en 5 sections (cœurs).
     int maxHearts    = 5;
@@ -543,25 +644,31 @@ void Game::displayGameOver()
     TextRenderer::drawText(
         *window, "GAME OVER", 
         Settings::WINDOW_WIDTH / 2 - 144, 
-        Settings::WINDOW_HEIGHT / 3, 8, 
+        Settings::WINDOW_HEIGHT / 4, 8, 
         gfx::Color(255, 50, 50)
     );
     
     // Options du menu
-    // La couleur dorée indique l'option actuellement sélectionnée par le joueur.
-    gfx::Color colorRestart = (gameOverSelection == 0) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
-    gfx::Color colorQuit    = (gameOverSelection == 1) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
+    gfx::Color colorRestart = (menuSelection == 0) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
+    gfx::Color colorMenu    = (menuSelection == 1) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
+    gfx::Color colorQuit    = (menuSelection == 2) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
 
     TextRenderer::drawText(
         *window, "> [SPACE] RESTART <", 
         Settings::WINDOW_WIDTH / 2 - 190, 
-        Settings::WINDOW_HEIGHT / 2 + 20, 5, colorRestart
+        Settings::WINDOW_HEIGHT / 2, 5, colorRestart
+    );
+
+    TextRenderer::drawText(
+        *window, "> MAIN MENU <", 
+        Settings::WINDOW_WIDTH / 2 - 110, 
+        Settings::WINDOW_HEIGHT / 2 + 70, 5, colorMenu
     );
 
     TextRenderer::drawText(
         *window, "> [ESC] QUIT <", 
         Settings::WINDOW_WIDTH / 2 - 140, 
-        Settings::WINDOW_HEIGHT / 2 + 90, 5, colorQuit
+        Settings::WINDOW_HEIGHT / 2 + 140, 5, colorQuit
     );
 }
 
@@ -580,8 +687,8 @@ void Game::displayPause()
     window->fillRect(Settings::WINDOW_WIDTH / 2 + 10, Settings::WINDOW_HEIGHT / 3, 30, 100, gfx::Color(255, 50, 50));
 
     // Options du menu de pause
-    gfx::Color colorResume = (gameOverSelection == 0) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
-    gfx::Color colorQuit   = (gameOverSelection == 1) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
+    gfx::Color colorResume = (menuSelection == 0) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
+    gfx::Color colorQuit   = (menuSelection == 1) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
 
     TextRenderer::drawText(
         *window, "> [SPACE] RESUME <", 
@@ -612,8 +719,8 @@ void Game::displayQuitConfirm()
     );
 
     // Boutons de choix (YES/NO)
-    gfx::Color colorYes = (gameOverSelection == 0) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
-    gfx::Color colorNo  = (gameOverSelection == 1) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
+    gfx::Color colorYes = (menuSelection == 0) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
+    gfx::Color colorNo  = (menuSelection == 1) ? gfx::Color(255, 215, 0) : gfx::Color(100, 100, 100);
 
     TextRenderer::drawText(
         *window, "> YES <", 
@@ -625,5 +732,53 @@ void Game::displayQuitConfirm()
         *window, "> NO <", 
         Settings::WINDOW_WIDTH / 2 - 60, 
         Settings::WINDOW_HEIGHT / 2 + 90, 5, colorNo
+    );
+}
+
+
+/** @brief Affiche l'écran du Menu Principal. */
+void Game::displayMainMenu()
+{
+    // Fond dynamique de rue
+    window->clear(gfx::Color(20, 20, 25));
+    backgroundManager->draw(*window, 1.0f); // Dessine le background (trottoirs, rue)
+    
+    // Voile assombrissant pour faire ressortir le texte
+    window->fillOverlay(0, 0, Settings::WINDOW_WIDTH, Settings::WINDOW_HEIGHT, gfx::Color(0, 0, 0, 180));
+    
+    // Titre du jeu
+    TextRenderer::drawText(
+        *window, "CARRE SURFER", 
+        Settings::WINDOW_WIDTH / 2 - 200, 
+        Settings::WINDOW_HEIGHT / 4, 10, 
+        gfx::Color(0, 200, 255)
+    );
+
+    TextRenderer::drawText(
+        *window, "SELECT DIFFICULTY", 
+        Settings::WINDOW_WIDTH / 2 - 180, 
+        Settings::WINDOW_HEIGHT / 3 + 50, 5, 
+        gfx::Color(200, 200, 200)
+    );
+    
+    // Options
+    gfx::Color colorEasy  = (menuSelection == 0) ? gfx::Color(0, 255, 0)   : gfx::Color(100, 100, 100);
+    gfx::Color colorInter = (menuSelection == 1) ? gfx::Color(255, 165, 0) : gfx::Color(100, 100, 100);
+    gfx::Color colorExp   = (menuSelection == 2) ? gfx::Color(255, 50, 50) : gfx::Color(100, 100, 100);
+
+    TextRenderer::drawText(
+        *window, "> EASY <", 
+        Settings::WINDOW_WIDTH / 2 - 90, 
+        Settings::WINDOW_HEIGHT / 2 + 20, 5, colorEasy
+    );
+    TextRenderer::drawText(
+        *window, "> INTERMEDIATE <", 
+        Settings::WINDOW_WIDTH / 2 - 160, 
+        Settings::WINDOW_HEIGHT / 2 + 90, 5, colorInter
+    );
+    TextRenderer::drawText(
+        *window, "> EXPERT <", 
+        Settings::WINDOW_WIDTH / 2 - 100, 
+        Settings::WINDOW_HEIGHT / 2 + 160, 5, colorExp
     );
 }

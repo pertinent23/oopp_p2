@@ -75,6 +75,9 @@ class Entity
         /** @return Référence constante vers la taille de l'entité. */
         const Vector2D& getSize() const;
 
+        /** @return Référence constante vers la vitesse de l'entité. */
+        const Vector2D& getVelocity() const;
+
         /** @return La hitbox de l'entité sous forme de Rect. */
         Rect getHitbox() const;
 };
