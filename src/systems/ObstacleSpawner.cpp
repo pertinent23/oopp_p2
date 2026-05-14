@@ -27,8 +27,8 @@ std::unique_ptr<Obstacle> ObstacleSpawner::createRandomObstacle() const
     float startX = static_cast<float>(Settings::WINDOW_WIDTH);
     
     float startY = Random::getFloat(
-        100.0f, 
-        static_cast<float>(Settings::WINDOW_HEIGHT) - 50.0f
+        60.0f, 
+        static_cast<float>(Settings::WINDOW_HEIGHT) - 45.0f
     );
 
     int randVal = Random::getInt(1, 100);

@@ -32,6 +32,7 @@ $RECYCLE.BIN/
 .idea/
 *.swp
 *.swo
+*.tar.xz
 
 
 etc/*txt
