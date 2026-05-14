@@ -10,10 +10,10 @@
 #include <algorithm>
 
 
-ObstacleSpawner::ObstacleSpawner() 
-    : spawnTimer(0.0f), currentSpeed(Settings::BASE_OBSTACLE_SPEED) 
-{
-}
+ObstacleSpawner::ObstacleSpawner(
+    //empty constructor body
+) : spawnTimer(0.0f), currentSpeed(Settings::BASE_OBSTACLE_SPEED) 
+{}
 
 
 float ObstacleSpawner::getCurrentSpeed() const 
@@ -37,18 +37,21 @@ std::unique_ptr<Obstacle> ObstacleSpawner::createRandomObstacle() const
     {
         return std::make_unique<Kebab>(startX, startY, currentSpeed);
     }
+
     randVal -= Settings::PROB_KEBAB;
 
     if (randVal <= Settings::PROB_CHOUFFE) 
     {
         return std::make_unique<Chouffe>(startX, startY, currentSpeed);
     }
+
     randVal -= Settings::PROB_CHOUFFE;
 
     if (randVal <= Settings::PROB_GARBAGE) 
     {
         return std::make_unique<Garbage>(startX, startY, currentSpeed);
     }
+
     randVal -= Settings::PROB_GARBAGE;
 
     if (randVal <= Settings::PROB_SCOOTER) 

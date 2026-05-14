@@ -1,0 +1,15 @@
+\section{Conception Orientée Objet}
+
+L'héritage et le polymorphisme sont au cœur de la gestion des entités du jeu.
+
+\subsection{Hiérarchie des Entités}
+Toutes les entités mobiles héritent d'une classe de base abstraite \textbf{Entity}. Cette classe définit les attributs fondamentaux (position, taille, vélocité) et les méthodes virtuelles pures \texttt{update()} et \texttt{draw()}.
+
+\subsection{Héritage et Spécialisation}
+\begin{itemize}
+    \item \textbf{Player} : Gère Thomas, ses points de vie et sa physique. 
+    \item \textbf{SmartPlayer} : Hérite de \texttt{Player}. Cette classe surcharge la méthode de gestion du mouvement pour remplacer les entrées clavier par une heuristique de décision autonome.
+    \item \textbf{Obstacle} : Classe de base pour tous les objets défilants. Elle définit la méthode virtuelle \texttt{onCollision()} que chaque sous-classe (\texttt{Kebab}, \texttt{Garbage}, \texttt{Scooter}, \texttt{DrunkStudent}) implémente selon ses propres effets (soin, dégâts, confusion).
+\end{itemize}
+
+Cette structure permet au \textbf{CollisionManager} de traiter tous les obstacles de manière polymorphique, sans connaître leur type exact, facilitant ainsi l'ajout de nouveaux types d'objets sans modifier le code existant.

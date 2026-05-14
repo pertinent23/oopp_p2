@@ -72,7 +72,6 @@ class BackgroundManager
 
             for (const auto& line : lines) 
             {
-                // Dessin de chaque ligne
                 // On dessine des rectangles horizontaux fins qui défilent 
                 // pour donner une impression de vitesse au sol (effet parallaxe).
                 window.fillRect(

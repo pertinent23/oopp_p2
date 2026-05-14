@@ -1,0 +1,9 @@
+\section{Gestion de la Mémoire et RAII}
+
+Le projet applique rigoureusement les standards modernes du C++ pour garantir la sécurité et l'absence de fuites de mémoire.
+
+\begin{itemize}
+    \item \textbf{Smart Pointers} : L'utilisation de \texttt{std::unique\_ptr} est généralisée pour la possession des systèmes (\texttt{ScoreManager}, \texttt{Window}, etc.) et des entités. Cela garantit une libération automatique des ressources dès qu'elles ne sont plus utilisées.
+    \item \textbf{Gestion des Vecteurs} : Les obstacles sont stockés dans un \texttt{std::vector<std::unique\_ptr<Obstacle>>}. Un système de nettoyage (\texttt{cleanDeadObstacles}) parcourt régulièrement cette liste pour supprimer les objets inactifs ou hors-écran, optimisant ainsi l'empreinte mémoire sur le long terme.
+    \item \textbf{RAII} : La classe \texttt{Window} encapsule les ressources bas-niveau de Wayland. Son destructeur libère proprement les surfaces et les tampons, évitant tout "zombie" Wayland après la fermeture du jeu.
+\end{itemize}

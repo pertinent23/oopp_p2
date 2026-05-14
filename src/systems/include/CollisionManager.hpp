@@ -11,10 +11,10 @@ class Obstacle;
 
 /**
  * @class CollisionManager
- * @brief Système de détection de collisions AABB (Axis-Aligned Bounding Box).
+ * @brief Système de détection de collisions
  * 
  * Cette classe statique isole la logique géométrique des collisions pour
- * garantir une séparation claire des responsabilités (SOC).
+ * garantir une séparation claire des responsabilités.
  */
 class CollisionManager 
 {

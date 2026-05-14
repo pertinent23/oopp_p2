@@ -11,7 +11,7 @@ namespace Settings
     inline int WINDOW_HEIGHT = 1080;
     constexpr int TARGET_FPS = 30;
 
-    // --- Joueur (Thomas) ---
+    // --- Joueur ---
     constexpr float PLAYER_SIZE            = 40.0f;
     constexpr int   PLAYER_START_X         = 200;
     constexpr int   PLAYER_MAX_HEALTH      = 100;

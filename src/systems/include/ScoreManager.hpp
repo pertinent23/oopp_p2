@@ -8,40 +8,46 @@
 class ScoreManager 
 {
     private:
-        int highScore;
-        const std::string filename = "highscore.txt";
+        int highScores[3]; ///< 0: Easy, 1: Intermediate, 2: Expert
+        const std::string filename = "highscores.txt";
 
     public:
         ScoreManager() 
         {
+            // Initialisation par défaut
+            for (int i = 0; i < 3; ++i) highScores[i] = 0;
+
             std::ifstream file(filename);
-
-            if (file.is_open() && (file >> highScore)) 
+            if (file.is_open()) 
             {
-                // Lecture réussie
+                for (int i = 0; i < 3; ++i) 
+                {
+                    if (!(file >> highScores[i])) break;
+                }
             } 
-            else 
-            {
-                highScore = 0;
-            }
         }
 
-        int getHighScore() const 
+        int getHighScore(int difficulty) const 
         { 
-            return highScore; 
+            if (difficulty < 0 || difficulty >= 3) return 0;
+            return highScores[difficulty]; 
         }
 
-        bool submitScore(int score) 
+        bool submitScore(int score, int difficulty) 
         {
-            if (score > highScore) 
+            if (difficulty < 0 || difficulty >= 3) return false;
+
+            if (score > highScores[difficulty]) 
             {
-                highScore = score;
+                highScores[difficulty] = score;
 
                 std::ofstream file(filename);
-
                 if (file.is_open())
                 {
-                    file << highScore;
+                    for (int i = 0; i < 3; ++i)
+                    {
+                        file << highScores[i] << " ";
+                    }
                 }
 
                 return true; // Nouveau record !

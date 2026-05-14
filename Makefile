@@ -22,7 +22,7 @@ SRCS = $(shell find src -name '*.cpp')
 OBJS = $(patsubst src/%.cpp, build/%.o, $(SRCS))
 DEPS = $(OBJS:.o=.d)
 
-.PHONY: all clean
+.PHONY: all clean submit
 
 all: $(TARGET)
 
@@ -56,4 +56,15 @@ $(XDG_SRC): $(XDG_XML)
 
 clean:
 	@echo "🧹 Nettoyage..."
-	@rm -rf build $(TARGET)
+	@rm -rf build $(TARGET) GROUP3 GROUP3.tar.xz
+
+submit:
+	@echo "📦 Création de l'archive de soumission..."
+	@rm -rf GROUP3 GROUP3.tar.xz
+	@mkdir -p GROUP3
+	@cp -r src GROUP3/
+	@cp report/report.pdf GROUP3/
+	@cp Makefile README.md .gitignore GROUP3/
+	@tar -cJf GROUP3.tar.xz GROUP3
+	@rm -rf GROUP3
+	@echo "✅ Archive GROUP3.tar.xz créée avec succès."

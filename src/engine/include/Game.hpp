@@ -19,7 +19,7 @@ class BackgroundManager;
 
 /**
  * @class Game
- * @brief Le cœur du moteur "Carre Surfer".
+ * @brief La classe qui gère le jeu.
  * 
  * Cette classe orchestre la boucle principale, la machine à états,
  * la mise à jour des systèmes et le rendu global.
@@ -72,6 +72,7 @@ class Game
         float timeSurvived;         ///< Chronomètre de survie
         float shakeTimer;           ///< Temps restant pour l'effet de tremblement
         bool  isDemoMode;           ///< Le jeu tourne-t-il en mode IA autonome ?
+        int   currentDifficulty;    ///< Niveau choisi (0: Easy, 1: Inter, 2: Expert)
     
         /** @brief Initialise les systèmes de base au lancement. */
         void init();

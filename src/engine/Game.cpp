@@ -28,7 +28,8 @@ Game::Game(bool demoMode):
     menuSelection(0),
     timeSurvived(0.0f),
     shakeTimer(0.0f),
-    isDemoMode(demoMode)
+    isDemoMode(demoMode),
+    currentDifficulty(0)
 {
     Random::init();
     scoreManager = std::make_unique<ScoreManager>();
@@ -59,7 +60,7 @@ void Game::init()
     
     std::cout << "--- Carre Surfer : Initialisation ---" << std::endl;
     std::cout << "Resolution : " << Settings::WINDOW_WIDTH << "x" << Settings::WINDOW_HEIGHT << std::endl;
-    std::cout << "Record actuel : " << scoreManager->getHighScore() << std::endl;
+    // On n'affiche plus le record ici car il dépend de la difficulté choisie plus tard
     
     currentState      = GameState::MAIN_MENU;
     previousState     = GameState::MAIN_MENU;
@@ -97,6 +98,8 @@ void Game::resetGame()
 
 void Game::applyDifficulty(int level)
 {
+    currentDifficulty = level;
+
     if (level == 0) // EASY
     {
         Settings::BASE_OBSTACLE_SPEED = 600.0f;
@@ -326,7 +329,7 @@ void Game::update(float deltaTime)
         // On n'enregistre le score que si on n'est PAS en mode démo
         if (!isDemoMode)
         {
-            isNewRecord = scoreManager->submitScore(finalScore);
+            isNewRecord = scoreManager->submitScore(finalScore, currentDifficulty);
         }
 
         std::cout << "--- GAME OVER ---" << std::endl;
@@ -605,8 +608,7 @@ void Game::drawUI()
     window->drawRect(barX, 25, maxDistBar, 15, gfx::Color(255, 255, 255)); // Contour blanc pour la lisibilité
 
     // Marqueur du High Score
-    // On dessine une petite barre dorée sur la barre de score pour matérialiser le record.
-    int highScore = scoreManager->getHighScore();
+    int highScore = scoreManager->getHighScore(currentDifficulty);
     if (highScore > 0)
     {
         float hsRatio = std::min(1.0f, highScore / static_cast<float>(Settings::MAX_SCORE_DISTANCE));
@@ -772,13 +774,27 @@ void Game::displayMainMenu()
         Settings::WINDOW_HEIGHT / 2 + 20, 5, colorEasy
     );
     TextRenderer::drawText(
+        *window, "RECORD: " + std::to_string(scoreManager->getHighScore(0)),
+        Settings::WINDOW_WIDTH / 2 + 100, Settings::WINDOW_HEIGHT / 2 + 30, 3, colorEasy
+    );
+
+    TextRenderer::drawText(
         *window, "> INTERMEDIATE <", 
         Settings::WINDOW_WIDTH / 2 - 160, 
         Settings::WINDOW_HEIGHT / 2 + 90, 5, colorInter
     );
     TextRenderer::drawText(
+        *window, "RECORD: " + std::to_string(scoreManager->getHighScore(1)),
+        Settings::WINDOW_WIDTH / 2 + 180, Settings::WINDOW_HEIGHT / 2 + 100, 3, colorInter
+    );
+
+    TextRenderer::drawText(
         *window, "> EXPERT <", 
         Settings::WINDOW_WIDTH / 2 - 100, 
         Settings::WINDOW_HEIGHT / 2 + 160, 5, colorExp
+    );
+    TextRenderer::drawText(
+        *window, "RECORD: " + std::to_string(scoreManager->getHighScore(2)),
+        Settings::WINDOW_WIDTH / 2 + 110, Settings::WINDOW_HEIGHT / 2 + 170, 3, colorExp
     );
 }
